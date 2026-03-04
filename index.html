@@ -1,0 +1,3503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TV Intelligence Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ── THEME TOKENS ── */
+:root {
+  --bg:#030710; --bg2:#060d1a; --bg3:#0a1325;
+  --bg4:#0e1930; --card-bg:rgba(10,19,38,.92);
+  --border:rgba(56,189,248,.09); --border-h:rgba(56,189,248,.28);
+  --border-accent:rgba(0,245,160,.2);
+  --text:#e2eeff; --text2:#7ea8c9; --text3:#445e7a;
+  --accent:#00f5a0; --a2:#f5c518; --a3:#ff3d6e; --a4:#38bdf8;
+  --a5:#a855f7; --a6:#fb923c;
+  --glow-g:0 0 0 1px rgba(0,245,160,.15),0 8px 32px rgba(0,245,160,.12);
+  --glow-b:0 0 0 1px rgba(56,189,248,.15),0 8px 32px rgba(56,189,248,.10);
+  --glow-p:0 0 0 1px rgba(168,85,247,.15),0 8px 32px rgba(168,85,247,.10);
+  --mono:'JetBrains Mono',monospace; --disp:'Rajdhani',sans-serif; --body:'Plus Jakarta Sans',sans-serif;
+  --r:14px; --shadow:0 4px 24px rgba(0,0,0,.5);
+  --tab-active:rgba(0,245,160,.08); --tab-border:var(--accent);
+}
+[data-theme="light"] {
+  /* ── Apple HIG Light + image-inspired blue-grey gradient ── */
+  --bg:#eef2fb; --bg2:#ffffff; --bg3:#f2f5fb;
+  --bg4:#e4ecf7; --card-bg:#ffffff;
+  --border:rgba(0,0,0,.07); --border-h:rgba(0,112,255,.18);
+  --border-accent:rgba(0,122,255,.2);
+  /* 4-level Apple text hierarchy — all pass WCAG AA */
+  --text:#1c1c1e; --text2:#3c3c43; --text3:#636366;
+  /* Apple system colours for accents */
+  --accent:#007aff; --a3:#ff3b30; --a4:#007aff; --a5:#af52de; --a6:#ff9500;
+  --glow-g:0 1px 3px rgba(0,0,0,.08),0 0 0 0.5px rgba(0,0,0,.05);
+  --glow-b:0 1px 3px rgba(0,122,255,.1),0 0 0 0.5px rgba(0,122,255,.08);
+  --glow-p:0 1px 3px rgba(175,82,222,.1),0 0 0 0.5px rgba(175,82,222,.08);
+  --tab-active:rgba(0,122,255,.06); --tab-border:#007aff;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 0 0 0.5px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:14px;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s;
+  background-image:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(56,189,248,.06) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 110%,rgba(0,245,160,.05) 0%,transparent 55%);}
+[data-theme="light"] body,body[data-theme="light"]{
+  background:#eef2fb;
+  background-image:linear-gradient(160deg,#eef2fb 0%,#e3ebf8 45%,#eaf0fa 100%) !important;}
+
+/* ── UPLOAD ── */
+#upload-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;
+  background:radial-gradient(ellipse at 50% -5%,rgba(0,245,160,.1) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 100%,rgba(56,189,248,.08) 0%,transparent 50%);}
+.upload-logo{font-family:var(--disp);font-size:11px;font-weight:700;letter-spacing:5px;text-transform:uppercase;margin-bottom:52px;
+  background:linear-gradient(90deg,var(--a4),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.upload-title{font-family:var(--disp);font-size:clamp(36px,6vw,68px);font-weight:700;line-height:1.05;text-align:center;margin-bottom:18px;
+  background:linear-gradient(135deg,var(--text) 0%,var(--a4) 45%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.upload-sub{color:var(--text3);font-size:15px;text-align:center;margin-bottom:48px;max-width:480px;line-height:1.75;}
+.upload-zone{border:1.5px solid rgba(0,245,160,.18);border-radius:20px;padding:52px 68px;text-align:center;cursor:pointer;
+  transition:all .3s;background:rgba(0,245,160,.02);max-width:520px;width:100%;
+  box-shadow:0 0 0 1px rgba(56,189,248,.04) inset,0 20px 60px rgba(0,0,0,.35);}
+.upload-zone:hover,.drag-over{border-color:var(--accent)!important;background:rgba(0,245,160,.05)!important;
+  box-shadow:var(--glow-g),0 20px 60px rgba(0,0,0,.4);}
+.upload-icon{font-size:44px;margin-bottom:20px;display:block;}
+.upload-zone p{color:var(--text2);line-height:1.7;}
+.upload-zone strong{color:var(--accent);}
+.upload-btn{display:inline-block;margin-top:24px;padding:13px 34px;
+  background:linear-gradient(135deg,var(--accent) 0%,#00c8a0 100%);
+  color:#030710;border-radius:10px;font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:1.5px;cursor:pointer;
+  transition:all .25s;border:none;box-shadow:0 4px 20px rgba(0,245,160,.3);}
+.upload-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,245,160,.45);}
+#file-input{display:none;}
+.upload-hint{margin-top:24px;font-size:12px;color:var(--text3);text-align:center;letter-spacing:.4px;}
+
+/* ── DASHBOARD ── */
+#dashboard{display:none;}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;border-bottom:1px solid var(--border);
+  background:rgba(6,13,26,.88);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:0 1px 0 rgba(56,189,248,.06),0 4px 24px rgba(0,0,0,.4);}
+.hdr-left{display:flex;align-items:center;gap:12px;}
+.hdr-badge{background:linear-gradient(90deg,var(--accent),var(--a4));color:#030710;font-family:var(--disp);font-size:10px;font-weight:700;letter-spacing:2.5px;padding:4px 10px;border-radius:5px;
+  box-shadow:0 2px 12px rgba(0,245,160,.35);}
+.hdr-title{font-family:var(--disp);font-size:21px;font-weight:700;letter-spacing:1.5px;
+  background:linear-gradient(90deg,var(--text) 30%,var(--a4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-meta{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.btn{padding:7px 16px;border-radius:8px;font-size:12px;cursor:pointer;font-family:var(--body);transition:all .22s;letter-spacing:.4px;font-weight:500;}
+.btn-ghost{border:1px solid var(--border);background:transparent;color:var(--text3);}
+.btn-ghost:hover{border-color:rgba(255,61,110,.4);color:var(--a3);}
+.btn-outline{border:1px solid rgba(0,245,160,.22);background:rgba(0,245,160,.05);color:var(--accent);}
+.btn-outline:hover{background:rgba(0,245,160,.12);box-shadow:0 0 14px rgba(0,245,160,.2);}
+
+/* Theme toggle */
+.theme-toggle{width:52px;height:26px;border-radius:13px;background:rgba(0,245,160,.12);border:1px solid rgba(0,245,160,.22);
+  cursor:pointer;position:relative;transition:all .3s;display:flex;align-items:center;padding:3px;}
+.theme-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);transition:transform .3s;display:flex;align-items:center;justify-content:center;font-size:10px;}
+[data-theme="light"] .theme-thumb{transform:translateX(26px);}
+
+/* ── STICKY SHELL — entire nav chrome sticks as one unit ── */
+.sticky-shell{position:sticky;top:0;z-index:300;isolation:isolate;}
+
+/* Filter panel — Option B: compact bar + checkbox dropdowns */
+.filter-panel{background:rgba(6,13,26,.75);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);
+  position:relative;z-index:10;}  /* lower z-index — dropdowns now appended to body */
+[data-theme="light"] .filter-panel{background:rgba(255,255,255,.88);border-bottom-color:rgba(0,0,0,.07);}
+
+.filter-bar{display:flex;align-items:center;gap:8px;padding:9px 28px;flex-wrap:wrap;}
+
+/* Filter group trigger button */
+.fg-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;
+  border:1px solid var(--border);background:transparent;color:var(--text2);
+  font-size:12px;font-family:var(--body);font-weight:500;cursor:pointer;transition:all .2s;
+  white-space:nowrap;user-select:none;position:relative;}
+.fg-btn:hover{border-color:rgba(0,245,160,.3);color:var(--text);}
+.fg-btn.active{background:rgba(0,245,160,.1);border-color:var(--accent);color:var(--accent);}
+.fg-btn .fg-caret{font-size:9px;opacity:.6;transition:transform .2s;}
+.fg-btn.open .fg-caret{transform:rotate(180deg);}
+.fg-badge{background:var(--accent);color:#030710;font-size:10px;font-weight:700;
+  border-radius:10px;padding:1px 6px;font-family:var(--mono);line-height:1.4;}
+[data-theme="light"] .fg-btn{border-color:rgba(0,0,0,.1);color:#3c3c43;}
+[data-theme="light"] .fg-btn:hover{border-color:rgba(0,122,255,.3);color:#007aff;}
+[data-theme="light"] .fg-btn.active{background:rgba(0,122,255,.08);border-color:rgba(0,122,255,.35);color:#007aff;}
+[data-theme="light"] .fg-badge{background:#007aff;color:#fff;}
+
+/* Separator between filter groups and date */
+.filter-sep{width:1px;height:22px;background:var(--border);flex-shrink:0;margin:0 4px;}
+
+/* ── DROPDOWN — position:fixed so it escapes all stacking contexts ── */
+.fg-dropdown{
+  position:fixed;           /* KEY FIX: fixed escapes animation stacking contexts */
+  z-index:9999;             /* above everything */
+  min-width:240px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.2);
+  overflow:hidden;
+  display:none;
+  animation:dropIn .15s ease;}
+.fg-dropdown.open{display:block;}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+[data-theme="light"] .fg-dropdown{box-shadow:0 8px 32px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.08);border-color:rgba(0,0,0,.1);}
+
+.fg-drop-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 8px;border-bottom:1px solid var(--border);}
+.fg-drop-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text3);font-family:var(--mono);font-weight:600;}
+.fg-drop-actions{display:flex;gap:6px;}
+.fg-act-btn{padding:3px 10px;border-radius:5px;font-size:10px;font-family:var(--mono);
+  letter-spacing:.5px;cursor:pointer;border:1px solid var(--border);
+  background:transparent;color:var(--text3);transition:all .18s;}
+.fg-act-btn:hover{color:var(--accent);border-color:var(--accent);}
+[data-theme="light"] .fg-drop-head{border-bottom-color:rgba(0,0,0,.07);}
+[data-theme="light"] .fg-act-btn:hover{color:#007aff;border-color:rgba(0,122,255,.3);}
+
+.fg-check-list{max-height:240px;overflow-y:auto;padding:6px 0;}
+.fg-check-list::-webkit-scrollbar{width:4px;}
+.fg-check-list::-webkit-scrollbar-track{background:transparent;}
+.fg-check-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.fg-check-item{display:flex;align-items:center;gap:9px;padding:7px 14px;
+  cursor:pointer;transition:background .15s;user-select:none;}
+.fg-check-item:hover{background:rgba(255,255,255,.04);}
+[data-theme="light"] .fg-check-item:hover{background:rgba(0,0,0,.03);}
+
+.fg-checkbox{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border);
+  background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;font-size:10px;color:transparent;}
+.fg-check-item.checked .fg-checkbox{background:var(--accent);border-color:var(--accent);color:#030710;}
+[data-theme="light"] .fg-check-item.checked .fg-checkbox{color:#fff;}
+
+.fg-check-lbl{flex:1;font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fg-check-item.checked .fg-check-lbl{color:var(--text);}
+.fg-check-impr{font-size:10px;font-family:var(--mono);color:var(--text3);flex-shrink:0;}
+[data-theme="light"] .fg-check-lbl{color:#3c3c43;}
+[data-theme="light"] .fg-check-item.checked .fg-check-lbl{color:#1c1c1e;}
+
+/* Date row inline with filter bar */
+.filter-date-row{display:flex;align-items:center;gap:8px;padding:0 28px 9px;flex-wrap:wrap;}
+.filter-date-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);font-family:var(--mono);}
+
+.date-input{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:6px;
+  padding:5px 10px;font-size:12px;font-family:var(--mono);cursor:pointer;transition:all .2s;outline:none;}
+.date-input:focus{border-color:var(--accent);color:var(--text);}
+
+.filter-summary{padding:5px 28px;background:rgb(230,236,248);border-bottom:1px solid rgba(0,245,160,.18);
+  font-size:11px;font-family:var(--mono);color:#1a2a4a;display:none;}
+.filter-summary.on{display:block;}
+[data-theme="light"] .filter-summary{background:rgb(230,236,248);border-bottom-color:rgba(0,122,255,.15);color:#1a2a4a;}
+
+/* Main nav tabs */
+.main-tabs{display:flex;background:rgba(6,13,26,.92);border-bottom:1px solid var(--border);padding:0 28px;gap:2px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  box-shadow:0 2px 16px rgba(0,0,0,.4);}
+.main-tab{padding:13px 22px;font-family:var(--disp);font-size:14px;font-weight:600;letter-spacing:.6px;cursor:pointer;
+  border:none;background:transparent;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .22s;position:relative;}
+.main-tab:hover{color:var(--text2);}
+.main-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.main-tab.active::after{content:'';position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);width:60%;height:2px;
+  background:var(--accent);filter:blur(4px);opacity:.6;}
+
+/* Tab content panels */
+.tab-content{display:none;} .tab-content.active{display:block;}
+
+/* Sub-tabs */
+.sub-tabs{display:flex;gap:3px;padding:16px 28px 0;flex-wrap:wrap;}
+.sub-tab{padding:9px 20px;border-radius:9px 9px 0 0;font-size:13px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border);border-bottom:none;background:var(--bg3);color:var(--text3);transition:all .22s;font-family:var(--body);}
+.sub-tab:hover{color:var(--text2);background:var(--bg4);}
+.sub-tab.active{background:var(--bg2);color:var(--accent);border-color:var(--border-accent);border-bottom:none;}
+.sub-panel{display:none;padding:22px 28px 40px;background:var(--bg2);border:1px solid var(--border);border-radius:0 10px 10px 10px;margin:0 28px 28px;}
+.sub-panel.active{display:block;}
+/* top-level padding for no-sub panels */
+.panel-wrap{padding:22px 28px 40px;}
+
+/* Main layout */
+.g-1{display:grid;grid-template-columns:1fr;gap:18px;}
+.g-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.g-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+.g-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.g-5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;}
+.g-2-1{display:grid;grid-template-columns:2fr 1fr;gap:18px;}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;transition:all .25s;animation:fadeUp .45s ease both;
+  position:relative;overflow:visible;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,245,160,.15),rgba(56,189,248,.12),transparent);opacity:0;transition:opacity .3s;border-radius:var(--r) var(--r) 0 0;}
+.card:hover{border-color:var(--border-h);box-shadow:0 8px 32px rgba(0,0,0,.3);}
+.card:hover::before{opacity:1;}
+[data-theme="light"] .card{box-shadow:var(--shadow);border-color:rgba(0,0,0,.06);}
+/* ── Additional Apple HIG light mode overrides ── */
+[data-theme="light"] .header{background:rgba(255,255,255,.88);border-bottom-color:rgba(0,0,0,.08);box-shadow:0 1px 0 rgba(0,0,0,.06),0 2px 12px rgba(0,0,0,.06);}
+[data-theme="light"] .hdr-title{background:linear-gradient(90deg,#1c1c1e 30%,#007aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+[data-theme="light"] .hdr-badge{background:linear-gradient(135deg,#007aff,#34c759);color:#fff;box-shadow:0 2px 8px rgba(0,122,255,.3);}
+[data-theme="light"] .main-tabs{background:rgba(255,255,255,.94);border-bottom-color:rgba(0,0,0,.08);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+[data-theme="light"] .main-tab.active{color:#007aff;border-bottom-color:#007aff;}
+[data-theme="light"] .main-tab.active::after{background:#007aff;}
+[data-theme="light"] .main-tab:hover{color:#3c3c43;}
+[data-theme="light"] .sub-tab{background:rgba(242,245,251,.8);border-color:rgba(0,0,0,.07);color:#636366;}
+[data-theme="light"] .sub-tab:hover{background:rgba(232,238,247,.9);color:#3c3c43;}
+[data-theme="light"] .sub-tab.active{background:#fff;color:#007aff;border-color:rgba(0,122,255,.2);}
+[data-theme="light"] .sub-panel{background:#fff;border-color:rgba(0,0,0,.07);}
+[data-theme="light"] .kpi{box-shadow:var(--shadow);border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .kpi-lbl{color:#8e8e93;}
+[data-theme="light"] .kpi-val{color:#1c1c1e;}
+[data-theme="light"] .kpi-sub{color:#636366;}
+[data-theme="light"] .cb{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.07);color:#8e8e93;}
+[data-theme="light"] .ct{color:#1c1c1e;}
+[data-theme="light"] .hbar-lbl{color:#3c3c43;}
+[data-theme="light"] .hbar-val{color:#636366;}
+[data-theme="light"] .pct-table th{color:#8e8e93;border-bottom-color:rgba(0,0,0,.08);}
+[data-theme="light"] .pct-table td{border-bottom-color:rgba(0,0,0,.04);}
+[data-theme="light"] .sec-lbl{color:#8e8e93;}
+[data-theme="light"] .insight-box{background:rgba(0,122,255,.04);border-color:rgba(0,122,255,.12);color:#3c3c43;}
+[data-theme="light"] .btn-ghost{border-color:rgba(0,0,0,.1);color:#636366;}
+[data-theme="light"] .btn-ghost:hover{border-color:rgba(255,59,48,.3);color:#ff3b30;}
+[data-theme="light"] .btn-outline{border-color:rgba(0,122,255,.25);background:rgba(0,122,255,.05);color:#007aff;}
+[data-theme="light"] .btn-outline:hover{background:rgba(0,122,255,.1);}
+[data-theme="light"] .theme-toggle{background:rgba(0,122,255,.08);border-color:rgba(0,122,255,.18);}
+[data-theme="light"] .spot-card{box-shadow:var(--shadow);border-color:rgba(0,0,0,.06);}
+[data-theme="light"] .date-input{background:#f2f5fb;border-color:rgba(0,0,0,.1);color:#3c3c43;}
+[data-theme="light"] .date-input:focus{border-color:#007aff;color:#1c1c1e;}
+[data-theme="light"] .filter-summary{background:rgb(230,236,248);border-bottom-color:rgba(0,122,255,.15);color:#1a2a4a;}
+[data-theme="light"] .no-data{color:#8e8e93;}
+[data-theme="light"] .data-note{color:#ff9500;}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.ct{font-family:var(--disp);font-size:15px;font-weight:600;letter-spacing:.5px;}
+.cb{font-size:10px;font-family:var(--mono);color:var(--text3);background:rgba(255,255,255,.04);padding:3px 9px;border-radius:5px;
+  border:1px solid var(--border);letter-spacing:.5px;}
+[data-theme="light"] .cb{background:rgba(0,0,0,.04);}
+.h160{height:160px;position:relative;} .h200{height:200px;position:relative;}
+.h240{height:240px;position:relative;} .h280{height:280px;position:relative;}
+.h320{height:320px;position:relative;} .h360{height:360px;position:relative;}
+.h400{height:400px;position:relative;}
+
+/* KPI */
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;transition:all .25s;animation:fadeUp .45s ease both;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--accent));
+  box-shadow:0 0 8px var(--kc,var(--accent));}
+.kpi::after{content:'';position:absolute;top:0;left:0;width:100%;height:100%;
+  background:radial-gradient(ellipse at 50% -20%,rgba(255,255,255,.03) 0%,transparent 70%);pointer-events:none;}
+.kpi:hover{border-color:var(--border-h);box-shadow:0 8px 32px rgba(0,0,0,.35);transform:translateY(-2px);}
+.kpi-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);font-family:var(--mono);margin-bottom:8px;}
+.kpi-val{font-family:var(--mono);font-size:clamp(16px,2vw,24px);font-weight:700;line-height:1;margin-bottom:5px;}
+.kpi-val span{font-size:12px;font-weight:400;color:var(--text3);}
+.kpi-sub{font-size:11px;color:var(--text3);}
+
+/* Hbar list */
+.hbar-list{display:flex;flex-direction:column;gap:8px;}
+.hbar-item{display:flex;align-items:center;gap:8px;}
+.hbar-rank{min-width:16px;font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;}
+.hbar-lbl{min-width:110px;max-width:110px;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hbar-track{flex:1;height:7px;background:rgba(128,128,128,.08);border-radius:4px;overflow:hidden;}
+.hbar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.16,1,.3,1);}
+.hbar-val{min-width:68px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--text3);}
+.hbar-freq{min-width:44px;text-align:right;font-family:var(--mono);font-size:10px;color:var(--a2);}
+
+/* Freq dist */
+.freq-item{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.freq-lbl{min-width:44px;font-family:var(--mono);font-size:12px;color:var(--accent);}
+.freq-track{flex:1;height:22px;background:rgba(128,128,128,.07);border-radius:4px;overflow:hidden;}
+.freq-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-family:var(--mono);
+  color:#030710;font-weight:700;min-width:2px;transition:width .8s cubic-bezier(.16,1,.3,1);white-space:nowrap;overflow:hidden;}
+
+/* Percentile table */
+.pct-table{width:100%;border-collapse:collapse;font-size:12px;}
+.pct-table th{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);
+  padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.pct-table td{padding:7px 10px;border-bottom:1px solid rgba(128,128,128,.06);font-family:var(--mono);}
+.pct-table tr:last-child td{border-bottom:none;}
+.pct-hl{color:var(--accent);font-weight:700;}
+
+/* Section divider */
+.sec-lbl{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);
+  display:flex;align-items:center;gap:12px;opacity:.55;margin:10px 0;}
+.sec-lbl::before,.sec-lbl::after{content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,var(--border),transparent);}
+
+/* Spotlight */
+.spot-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.spot-card{flex:1;min-width:150px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;
+  position:relative;overflow:hidden;transition:border-color .25s;animation:fadeUp .4s ease both;}
+.spot-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--sc,var(--a2));
+  box-shadow:0 0 8px var(--sc,var(--a2));}
+.spot-name{font-family:var(--disp);font-size:13px;font-weight:700;color:var(--sc,var(--a2));margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.spot-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+.spot-key{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:.8px;}
+.spot-val{font-family:var(--mono);font-size:13px;font-weight:600;}
+.share-bar{margin-top:8px;height:3px;background:rgba(128,128,128,.1);border-radius:2px;overflow:hidden;}
+.share-fill{height:100%;border-radius:2px;background:var(--sc,var(--a2));transition:width .8s cubic-bezier(.16,1,.3,1);}
+
+/* No data */
+.no-data{display:flex;align-items:center;justify-content:center;height:90px;color:var(--text3);font-size:13px;letter-spacing:.5px;}
+.data-note{font-size:11px;color:var(--a2);font-family:var(--mono);padding:6px 0 4px;opacity:.8;}
+
+/* Insight callout */
+.insight-box{background:rgba(0,245,160,.04);border:1px solid rgba(0,245,160,.12);border-radius:10px;padding:12px 16px;
+  font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:18px;
+  display:flex;align-items:flex-start;gap:10px;line-height:1.6;}
+.insight-box::before{content:'💡';font-size:14px;flex-shrink:0;}
+
+/* Pulse */
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.7);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* Error box */
+.err-box{max-width:560px;width:100%;background:rgba(255,61,110,.06);border:1px solid rgba(255,61,110,.3);border-radius:12px;padding:20px 24px;margin-top:28px;display:none;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,128,.18);border-radius:3px;}
+
+/* ── EXPORT SYSTEM ── */
+/* Global download button in header */
+.export-btn{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:var(--text2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  transition:all .2s;flex-shrink:0;}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,245,160,.08);
+  box-shadow:0 0 14px rgba(0,245,160,.18);}
+[data-theme="light"] .export-btn:hover{border-color:#007aff;color:#007aff;background:rgba(0,122,255,.06);}
+.export-btn svg{width:15px;height:15px;pointer-events:none;}
+
+/* Export dropdown menu */
+.export-menu{position:fixed;z-index:9999;min-width:210px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 12px 40px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.25);
+  overflow:hidden;display:none;animation:dropIn .15s ease;}
+.export-menu.open{display:block;}
+.export-menu-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);}
+.export-menu-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text3);font-family:var(--mono);font-weight:600;}
+.export-menu-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px;opacity:.7;}
+.export-section{padding:6px 0;}
+.export-section-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);font-family:var(--mono);padding:4px 14px 2px;opacity:.55;}
+.export-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;transition:background .15s;}
+.export-item:hover{background:rgba(255,255,255,.05);}
+[data-theme="light"] .export-item:hover{background:rgba(0,0,0,.04);}
+.export-item-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;flex-shrink:0;}
+.export-item-icon.xlsx{background:rgba(34,197,94,.12);color:#22c55e;}
+.export-item-icon.pdf{background:rgba(239,68,68,.12);color:#ef4444;}
+.export-item-info{flex:1;}
+.export-item-name{font-size:12px;font-weight:500;color:var(--text);}
+.export-item-desc{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.export-divider{height:1px;background:var(--border);margin:2px 0;}
+
+/* Per-card export button — sits in top-right, visible on card hover */
+.card-export-btn{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text3);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:all .18s;z-index:10;flex-shrink:0;pointer-events:none;}
+.card:hover .card-export-btn{opacity:1;pointer-events:auto;}
+.card-export-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,245,160,.08);transform:scale(1.08);}
+[data-theme="light"] .card-export-btn:hover{border-color:#007aff;color:#007aff;background:rgba(0,122,255,.06);}
+.card-export-btn svg{width:11px;height:11px;pointer-events:none;}
+
+/* Card export menu */
+.card-export-menu{position:fixed;z-index:9998;min-width:170px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 10px 32px rgba(0,0,0,.4);overflow:hidden;display:none;}
+.card-export-menu.open{display:block;animation:dropIn .14s ease;}
+.card-export-menu .export-item{padding:7px 12px;}
+.card-export-menu .export-item-icon{width:24px;height:24px;border-radius:6px;font-size:11px;}
+
+/* Tab-level export button in sub-tabs bar */
+.tab-export-btn{margin-left:auto;width:28px;height:28px;border-radius:8px;
+  border:1px solid var(--border);background:transparent;color:var(--text3);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .18s;flex-shrink:0;}
+.tab-export-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,245,160,.08);}
+[data-theme="light"] .tab-export-btn:hover{border-color:#007aff;color:#007aff;background:rgba(0,122,255,.06);}
+.tab-export-btn svg{width:13px;height:13px;pointer-events:none;}
+.export-toast{position:fixed;bottom:28px;right:28px;z-index:99999;
+  background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:12px 18px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.16,1,.3,1);
+  pointer-events:none;font-size:12px;font-family:var(--mono);}
+.export-toast.show{transform:translateY(0);opacity:1;}
+.export-toast-icon{font-size:16px;}
+.export-toast-msg{color:var(--text);}
+.export-toast-sub{color:var(--text3);font-size:10px;margin-top:2px;}
+
+/* Progress bar in toast */
+.export-progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:99999;
+  background:linear-gradient(90deg,var(--accent),var(--a4));
+  transform:scaleX(0);transform-origin:left;transition:transform .3s ease;}
+.export-progress.active{animation:progressAnim 1.5s ease infinite;}
+@keyframes progressAnim{0%{transform:scaleX(0) translateX(0);}50%{transform:scaleX(.6) translateX(50%);}100%{transform:scaleX(0) translateX(200%);}}
+
+@media(max-width:1200px){.g-5,.g-4{grid-template-columns:repeat(3,1fr)}.g-3{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.g-3,.g-2{grid-template-columns:1fr}.g-2-1{grid-template-columns:1fr}}
+@media(max-width:768px){.panel-wrap,.sub-panel{padding:14px 16px 32px}.filter-row{padding:8px 16px}.hdr-meta{display:none}.main-tabs{padding:0 16px}}
+
+/* ══════════════════════════════════════════════════════════
+   PRINT / PDF STYLESHEET
+   Browser renders at full quality: vector text, full-res canvas
+   Each tab gets its own page. All sub-panels shown.
+   ══════════════════════════════════════════════════════════ */
+@media print {
+  /* Force colour rendering */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide ALL chrome / interactive UI */
+  .sticky-shell,
+  .header,
+  .filter-panel,
+  .filter-summary,
+  .main-tabs,
+  .export-menu,
+  .card-export-menu,
+  .export-toast,
+  .export-progress,
+  .card-export-btn,
+  #upload-screen,
+  .tab-export-btn,
+  #global-export-btn { display: none !important; }
+
+  /* Page setup */
+  @page {
+    size: A4 landscape;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  html, body {
+    background: var(--bg) !important;
+    width: 100%;
+    height: auto;
+    overflow: visible !important;
+  }
+
+  /* Dashboard container */
+  #dashboard {
+    display: block !important;
+    background: transparent;
+  }
+
+  /* Each tab = one printed section, page-break between */
+  .tab-content {
+    display: block !important;
+    page-break-before: always;
+    break-before: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-top: 0 !important;
+  }
+
+  /* First tab: no leading page break */
+  .tab-content:first-of-type {
+    page-break-before: auto;
+    break-before: auto;
+  }
+
+  /* Show all sub-panels */
+  .sub-panel {
+    display: block !important;
+    page-break-inside: auto;
+    break-inside: auto;
+    overflow: visible !important;
+    margin-bottom: 8mm !important;
+  }
+  .sub-tabs { display: none !important; }
+
+  /* Cards / grid */
+  .card, .kpi, .spot-card {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .panel-wrap {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Printed page header per tab */
+  .tab-content::before {
+    content: attr(data-print-title);
+    display: block;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18pt;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+    padding-bottom: 4mm;
+    border-bottom: 1px solid var(--accent);
+    margin-bottom: 6mm;
+  }
+
+  /* Charts: preserve canvas dimensions — DO NOT set height:auto (collapses canvas) */
+  canvas {
+    max-width: 100% !important;
+    display: block !important;
+  }
+
+  /* Grids: allow wrapping for print */
+  .g-5, .g-4, .g-3 { grid-template-columns: repeat(3, 1fr) !important; }
+  .g-2, .g-2-1 { grid-template-columns: 1fr 1fr !important; }
+
+  /* Force ALL backgrounds and colours to print exactly */
+  body { background: #030710 !important; color: #e2eeff !important; }
+  #dashboard { background: #030710 !important; }
+  .card, .kpi, .spot-card, .sub-panel {
+    background: #060d1a !important;
+    border-color: rgba(56,189,248,.12) !important;
+  }
+  .kpi-val { color: #e2eeff !important; }
+  .kpi-lbl { color: #7ea8c9 !important; }
+  .ct, .cb { color: #7ea8c9 !important; }
+  .sec-lbl { color: #445e7a !important; }
+  /* KPI accent strips must print */
+  .kpi::before { background: var(--kc, #00f5a0) !important; }
+  .card::before { background: rgba(0,245,160,.3) !important; }
+}
+</style>
+<script>
+  // Sticky shell is now position:sticky — no manual offset sync needed
+  window._syncTabsTop=function(){};
+</script>
+</head>
+<body data-theme="dark">
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="upload-logo">⬡ TV INTELLIGENCE</div>
+  <h1 class="upload-title">TV Viewership Analytics</h1>
+  <p class="upload-sub">Load your <code style="background:rgba(0,245,160,.1);padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:13px;color:var(--accent)">dashboard_data.json</code> to explore streaming and linear viewership patterns.</p>
+  <div class="upload-zone" id="upload-zone">
+    <span class="upload-icon">📡</span>
+    <p>Drag & drop your <strong>dashboard_data.json</strong> or <strong style="color:var(--a2)">raw Excel (.xlsx)</strong> here</p>
+    <p style="margin-top:8px;font-size:12px;color:var(--text3);">JSON output of prepare_dashboard_data.py, or raw Samba TV Excel export</p>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">⬆ Select File</button>
+  </div>
+  <p class="upload-hint">Accepts <strong style="color:var(--accent)">dashboard_data.json</strong> or raw <strong style="color:var(--a2)">Excel (.xlsx)</strong> · Runs entirely offline · Data stays in your browser</p>
+  <div class="err-box" id="error-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span style="font-size:18px;">⚠️</span>
+      <span style="font-family:var(--disp);font-size:14px;font-weight:700;color:var(--a3);">Load failed</span>
+      <span id="err-fname" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:auto;"></span>
+    </div>
+    <pre id="err-msg" style="font-family:var(--mono);font-size:11px;white-space:pre-wrap;word-break:break-all;line-height:1.7;background:rgba(0,0,0,.25);padding:12px;border-radius:6px;"></pre>
+    <p style="margin-top:12px;font-size:12px;color:var(--text3);line-height:1.7;">Re-run <code style="font-family:var(--mono);">python3 prepare_dashboard_data.py</code> and ensure you see a ✅ Done line.</p>
+  </div>
+  <input type="file" id="file-input" accept=".json,.xlsx,.xls,application/json"/>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <header class="header">
+    <div class="hdr-left">
+      <span class="hdr-badge">LIVE</span>
+      <span class="hdr-title">TV Intelligence</span>
+    </div>
+    <div id="hdr-meta" class="hdr-meta"></div>
+    <div class="hdr-right">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light">
+        <div class="theme-thumb" id="theme-thumb">🌙</div>
+      </button>
+      <!-- Global export button -->
+      <button class="export-btn" id="global-export-btn" onclick="toggleExportMenu(event)" title="Export dashboard">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1v8M5 6l3 3 3-3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/>
+        </svg>
+      </button>
+      <button class="btn btn-ghost" onclick="resetFilters()">↺ Reset</button>
+      <button class="btn btn-outline" onclick="document.getElementById('file-input').click()">⬆ New File</button>
+    </div>
+  </header>
+
+  <!-- ═══ STICKY SHELL: header + filters + main-tabs move as one block ═══ -->
+  <div class="sticky-shell">
+
+  <!-- Filter panel — Option B: compact pill bar + checkbox dropdowns -->
+  <div class="filter-panel">
+    <div class="filter-bar">
+
+      <!-- Type filter -->
+      <div style="position:relative;">
+        <button class="fg-btn" id="fg-btn-ct" onclick="toggleFG('ct',this)">
+          <span>Type</span><span class="fg-badge" id="fg-badge-ct" style="display:none"></span><span class="fg-caret">▾</span>
+        </button>
+        <div class="fg-dropdown" id="fg-drop-ct">
+          <div class="fg-drop-head">
+            <span class="fg-drop-title">CONTENT TYPE</span>
+            <div class="fg-drop-actions">
+              <button class="fg-act-btn" onclick="fgSelectAll('ct')">All</button>
+              <button class="fg-act-btn" onclick="fgClear('ct')">Clear</button>
+            </div>
+          </div>
+          <div class="fg-check-list" id="fg-list-ct"></div>
+        </div>
+      </div>
+
+      <!-- App filter -->
+      <div style="position:relative;">
+        <button class="fg-btn" id="fg-btn-app" onclick="toggleFG('app',this)">
+          <span>App</span><span class="fg-badge" id="fg-badge-app" style="display:none"></span><span class="fg-caret">▾</span>
+        </button>
+        <div class="fg-dropdown" id="fg-drop-app">
+          <div class="fg-drop-head">
+            <span class="fg-drop-title">STREAMING APP</span>
+            <div class="fg-drop-actions">
+              <button class="fg-act-btn" onclick="fgSelectAll('app')">All</button>
+              <button class="fg-act-btn" onclick="fgClear('app')">Clear</button>
+            </div>
+          </div>
+          <div class="fg-check-list" id="fg-list-app"></div>
+        </div>
+      </div>
+
+      <!-- Network filter -->
+      <div style="position:relative;">
+        <button class="fg-btn" id="fg-btn-net" onclick="toggleFG('net',this)">
+          <span>Network</span><span class="fg-badge" id="fg-badge-net" style="display:none"></span><span class="fg-caret">▾</span>
+        </button>
+        <div class="fg-dropdown" id="fg-drop-net">
+          <div class="fg-drop-head">
+            <span class="fg-drop-title">LINEAR NETWORK</span>
+            <div class="fg-drop-actions">
+              <button class="fg-act-btn" onclick="fgSelectAll('net')">All</button>
+              <button class="fg-act-btn" onclick="fgClear('net')">Clear</button>
+            </div>
+          </div>
+          <div class="fg-check-list" id="fg-list-net"></div>
+        </div>
+      </div>
+
+      <!-- Device filter -->
+      <div style="position:relative;">
+        <button class="fg-btn" id="fg-btn-dev" onclick="toggleFG('dev',this)">
+          <span>Device</span><span class="fg-badge" id="fg-badge-dev" style="display:none"></span><span class="fg-caret">▾</span>
+        </button>
+        <div class="fg-dropdown" id="fg-drop-dev">
+          <div class="fg-drop-head">
+            <span class="fg-drop-title">DEVICE CATEGORY</span>
+            <div class="fg-drop-actions">
+              <button class="fg-act-btn" onclick="fgSelectAll('dev')">All</button>
+              <button class="fg-act-btn" onclick="fgClear('dev')">Clear</button>
+            </div>
+          </div>
+          <div class="fg-check-list" id="fg-list-dev"></div>
+        </div>
+      </div>
+
+      <div class="filter-sep"></div>
+
+      <!-- Date range -->
+      <span class="filter-date-lbl" style="padding-top:0;">DATE</span>
+      <input type="date" class="date-input" id="date-start" onchange="applyFilters()"/>
+      <span style="color:var(--text3);font-size:12px;">→</span>
+      <input type="date" class="date-input" id="date-end" onchange="applyFilters()"/>
+      <span id="date-hint" style="font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
+    </div>
+  </div>
+  <div class="filter-summary" id="filter-summary"></div>
+
+  <!-- Main tabs -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchTab('overview',this)">Overview</button>
+    <button class="main-tab" onclick="switchTab('reach',this)">Reach Analysis</button>
+    <button class="main-tab" onclick="switchTab('linear',this)">Linear TV</button>
+    <button class="main-tab" onclick="switchTab('streaming',this)">Streaming</button>
+    <button class="main-tab" onclick="switchTab('overlap',this)">Overlap &amp; Dedup</button>
+    <button class="main-tab" onclick="switchTab('audience',this)">Audience</button>
+  </div>
+  </div><!-- /sticky-shell -->
+
+  <!-- ═══════════════════════════════ OVERVIEW ═══════════════════════════════ -->
+  <div id="tab-overview" class="tab-content active">
+    <div class="panel-wrap">
+
+      <div class="g-5" style="margin-bottom:18px;">
+        <div class="kpi" style="--kc:var(--accent)"><div class="kpi-lbl">Total Impressions</div><div class="kpi-val" id="kv-impr">—</div><div class="kpi-sub" id="ks-impr"></div></div>
+        <div class="kpi" style="--kc:var(--a2)"><div class="kpi-lbl">Unique Devices</div><div class="kpi-val" id="kv-dev">—</div><div class="kpi-sub">approx across segments</div></div>
+        <div class="kpi" style="--kc:#8338ec"><div class="kpi-lbl">Avg Frequency</div><div class="kpi-val" id="kv-freq">—</div><div class="kpi-sub">impressions / device</div></div>
+        <div class="kpi" style="--kc:var(--a4)"><div class="kpi-lbl">Total Watch Time</div><div class="kpi-val" id="kv-watch">—</div><div class="kpi-sub" id="ks-watch"></div></div>
+        <div class="kpi" style="--kc:var(--a3)"><div class="kpi-lbl">Date Range</div><div class="kpi-val" id="kv-date" style="font-size:14px">—</div><div class="kpi-sub" id="ks-date"></div></div>
+      </div>
+
+      <div class="g-3" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Content Type</span><span class="cb">FILTERED</span></div><div class="h160"><canvas id="c-ct"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Device Category</span><span class="cb">FILTERED</span></div><div class="h160"><canvas id="c-dev"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Live vs Non-Live</span><span class="cb">LINEAR</span></div><div class="h160"><canvas id="c-live"></canvas></div></div>
+      </div>
+
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="ch"><span class="ct">Top Streaming Apps</span><span class="cb">FILTERED</span></div>
+          <div class="h240"><canvas id="c-apps"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Top Linear Networks</span><span class="cb">FILTERED</span></div>
+          <div class="h240"><canvas id="c-nets"></canvas></div>
+        </div>
+      </div>
+
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="ch"><span class="ct">Top Content</span><span class="cb">LINEAR + STREAMING</span></div>
+          <div id="ov-top-content" class="hbar-list"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Top Genres</span><span class="cb">LINEAR + STREAMING</span></div>
+          <div class="h280"><canvas id="c-ov-genre"></canvas></div>
+        </div>
+      </div>
+
+      <!-- App spotlight when apps selected -->
+      <div id="app-spotlight" style="display:none">
+        <div class="sec-lbl">STREAMING SPOTLIGHT</div>
+        <div id="spot-cards" class="spot-cards"></div>
+        <div class="g-2">
+          <div class="card"><div class="ch"><span class="ct">Genres by App</span><span class="cb" id="badge-gapp">SELECTED</span></div><div class="h280"><canvas id="c-gapp"></canvas></div></div>
+          <div class="card"><div class="ch"><span class="ct">Watch Time by App</span><span class="cb">HOURS</span></div><div class="h280"><canvas id="c-wapp"></canvas></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ REACH ════════════════════════════════ -->
+  <div id="tab-reach" class="tab-content">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSub('reach','cumul',this)">Cumulative Reach</button>
+      <button class="sub-tab" onclick="switchSub('reach','daily',this)">Reach by Time</button>
+      <button class="sub-tab" onclick="switchSub('reach','incr',this)">Incremental Reach by Day</button>
+    </div>
+
+    <div id="reach-cumul" class="sub-panel active">
+      <div class="g-5" style="margin-bottom:18px;">
+        <div class="kpi" style="--kc:var(--accent)"><div class="kpi-lbl">Total Reach</div><div class="kpi-val" id="rk-total">—</div><div class="kpi-sub">impressions filtered</div></div>
+        <div class="kpi" style="--kc:var(--a2)"><div class="kpi-lbl">Streaming Reach</div><div class="kpi-val" id="rk-st">—</div><div class="kpi-sub" id="rks-st"></div></div>
+        <div class="kpi" style="--kc:var(--a4)"><div class="kpi-lbl">Linear TV Reach</div><div class="kpi-val" id="rk-lt">—</div><div class="kpi-sub" id="rks-lt"></div></div>
+        <div class="kpi" style="--kc:#8338ec"><div class="kpi-lbl">Days in Range</div><div class="kpi-val" id="rk-days">—</div><div class="kpi-sub">with data</div></div>
+        <div class="kpi" style="--kc:var(--a3)"><div class="kpi-lbl">Peak Day</div><div class="kpi-val" id="rk-peak" style="font-size:13px">—</div><div class="kpi-sub" id="rks-peak"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Cumulative Impressions by Date — Streaming vs Linear TV</span><span class="cb">FILTERED</span></div>
+        <div class="h320"><canvas id="c-cumul"></canvas></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Streaming Share of Total Reach</span><span class="cb">BY DAY</span></div><div class="h240"><canvas id="c-share"></canvas></div></div>
+        <div class="card">
+          <div class="ch"><span class="ct">Reach Concentration</span><span class="cb">TOP DAYS</span></div>
+          <div id="top-days-list" class="hbar-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="reach-daily" class="sub-panel">
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Daily Impressions — Streaming vs Linear TV</span><span class="cb">FILTERED</span></div>
+        <div class="h320"><canvas id="c-daily"></canvas></div>
+      </div>
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Viewership by Hour of Day (IST)</span><span class="cb">FULL DATASET</span></div><div class="h240"><canvas id="c-hour"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Viewership by Day of Week</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-dow"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="reach-incr" class="sub-panel">
+      <div class="g-4" style="margin-bottom:18px;">
+        <div class="kpi" style="--kc:var(--accent)"><div class="kpi-lbl">Avg Daily Impressions</div><div class="kpi-val" id="rk-avg-daily">—</div><div class="kpi-sub">streaming + linear</div></div>
+        <div class="kpi" style="--kc:var(--a2)"><div class="kpi-lbl">Peak Day Increment</div><div class="kpi-val" id="rk-peak-incr">—</div><div class="kpi-sub" id="rks-peak-incr"></div></div>
+        <div class="kpi" style="--kc:var(--a4)"><div class="kpi-lbl">Lowest Day</div><div class="kpi-val" id="rk-low-incr">—</div><div class="kpi-sub" id="rks-low-incr"></div></div>
+        <div class="kpi" style="--kc:#8338ec"><div class="kpi-lbl">Day-over-Day Growth</div><div class="kpi-val" id="rk-dod">—</div><div class="kpi-sub">last vs first day</div></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Incremental Impressions by Day — Streaming vs Linear TV</span><span class="cb">FILTERED</span></div>
+        <div class="h320"><canvas id="c-incr-daily"></canvas></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Day-over-Day Change (Total)</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-incr-dod"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Incremental Days</span><span class="cb">FILTERED</span></div><div id="incr-top-days" class="hbar-list"></div></div>
+      </div>
+      <div class="sec-lbl" style="margin-top:18px;">INCREMENTAL REACH BY DEVICE IDs</div>
+      <div class="insight-box">Unique device reach accumulated per day — showing new devices reached each day across Streaming and Linear TV combined.</div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Daily Unique Device Reach — Streaming vs Linear TV</span><span class="cb">DEVICE IDs</span></div>
+        <div class="h320"><canvas id="c-incr-devices"></canvas></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Cumulative Device Reach Over Time</span><span class="cb">APPROX</span></div><div class="h280"><canvas id="c-incr-devs-cumul"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Device Reach — Top Days</span><span class="cb">BY DEVICES</span></div><div id="incr-devs-top-days" class="hbar-list"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ LINEAR TV ═══════════════════════════════ -->
+  <div id="tab-linear" class="tab-content">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSub('linear','ln-ch',this)">Channel</button>
+      <button class="sub-tab" onclick="switchSub('linear','ln-show',this)">Shows</button>
+      <button class="sub-tab" onclick="switchSub('linear','ln-geo',this)">Geo</button>
+      <button class="sub-tab" onclick="switchSub('linear','ln-time',this)">Time</button>
+      <button class="sub-tab" onclick="switchSub('linear','ln-day',this)">Day</button>
+    </div>
+
+    <div id="linear-ln-ch" class="sub-panel active">
+      <div class="g-4" id="lin-kpis" style="margin-bottom:18px;"></div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Impressions &amp; Avg Frequency by Channel</span><span class="cb">FILTERED</span></div>
+        <div class="h360"><canvas id="c-ln-net-combo"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Reach (Unique Devices) &amp; Avg Frequency by Channel</span><span class="cb">FILTERED</span></div>
+        <div class="h320"><canvas id="c-ln-reach-combo"></canvas></div>
+      </div>
+      <div style="margin-top:18px;" class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Live vs Non-Live — Linear</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-ln-live"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Watch Time by Network (hrs)</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-ln-watch"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="linear-ln-show" class="sub-panel">
+      <div class="g-2">
+        <div class="card">
+          <div class="ch"><span class="ct">Top Shows — Linear TV</span><span class="cb">FILTERED</span></div>
+          <div id="ln-shows-impr" class="hbar-list"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Top Shows by Watch Time</span><span class="cb">FILTERED</span></div>
+          <div id="ln-shows-watch" class="hbar-list"></div>
+        </div>
+      </div>
+      <div class="g-2" style="margin-top:18px;">
+        <div class="card"><div class="ch"><span class="ct">Top Genres — Linear</span><span class="cb">FILTERED</span></div><div id="ln-genres" class="hbar-list"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Genres Distribution</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-ln-genre"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="linear-ln-geo" class="sub-panel">
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Top States — Linear TV</span><span class="cb">FILTERED</span></div><div id="ln-states" class="hbar-list"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Cities — Linear TV</span><span class="cb">FILTERED</span></div><div id="ln-cities" class="hbar-list"></div></div>
+      </div>
+      <div class="g-2" style="margin-top:18px;">
+        <div class="card"><div class="ch"><span class="ct">State Distribution</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-ln-state"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">City Distribution</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-ln-city"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="linear-ln-time" class="sub-panel">
+      <div class="card" style="margin-bottom:18px;"><div class="ch"><span class="ct">Linear TV — Viewership by Hour (IST)</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-ln-hour"></canvas></div></div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Prime Time vs Off-Peak Split</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-ln-primetime"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Avg Freq by Time Slot</span><span class="cb">FILTERED</span></div><div id="ln-timeslot-freq" class="hbar-list"></div></div>
+      </div>
+    </div>
+
+    <div id="linear-ln-day" class="sub-panel">
+      <div class="card" style="margin-bottom:18px;"><div class="ch"><span class="ct">Linear TV — Daily Impressions</span><span class="cb">FILTERED</span></div><div class="h320"><canvas id="c-ln-daily"></canvas></div></div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Day of Week Performance</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-ln-dow"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Days by Impressions</span><span class="cb">FILTERED</span></div><div id="ln-top-days" class="hbar-list"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ STREAMING ═══════════════════════════════ -->
+  <div id="tab-streaming" class="tab-content">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSub('streaming','st-app',this)">App</button>
+      <button class="sub-tab" onclick="switchSub('streaming','st-content',this)">Content</button>
+      <button class="sub-tab" onclick="switchSub('streaming','st-geo',this)">Geo</button>
+      <button class="sub-tab" onclick="switchSub('streaming','st-time',this)">Time</button>
+      <button class="sub-tab" onclick="switchSub('streaming','st-day',this)">Day</button>
+    </div>
+
+    <div id="streaming-st-app" class="sub-panel active">
+      <div class="g-4" id="st-kpis" style="margin-bottom:18px;"></div>
+      <div class="g-1" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Impressions &amp; Avg Frequency by App</span><span class="cb">FILTERED</span></div><div class="h360"><canvas id="c-st-app-combo"></canvas></div></div>
+      </div>
+      <div class="g-1" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Reach (Unique Devices) &amp; Avg Frequency by App</span><span class="cb">FILTERED</span></div><div class="h320"><canvas id="c-st-reach-combo"></canvas></div></div>
+      </div>
+      <div class="sec-lbl">INCREMENTAL REACH BY DEVICE IDs</div>
+      <div class="insight-box">Daily unique device reach for Streaming — showing new devices reached each day by App.</div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Daily Unique Device Reach — Streaming Apps</span><span class="cb">DEVICE IDs</span></div>
+        <div class="h320"><canvas id="c-st-incr-devices"></canvas></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Watch Time by App (hrs)</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-st-watch"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Titles — Streaming</span><span class="cb">FILTERED</span></div><div id="st-titles-note" class="data-note" style="display:none"></div><div id="st-titles" class="hbar-list"></div></div>
+      </div>
+    </div>
+
+    <div id="streaming-st-content" class="sub-panel">
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Top Titles — Streaming</span><span class="cb">FILTERED</span></div><div id="st-cnt-titles" class="hbar-list"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Watch Time by Title (hrs)</span><span class="cb">FILTERED</span></div><div id="st-cnt-watch" class="hbar-list"></div></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Top Genres — Streaming</span><span class="cb">FILTERED</span></div><div id="st-cnt-genres" class="hbar-list"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Genre Distribution</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-st-genre"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="streaming-st-geo" class="sub-panel">
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Top States — Streaming</span><span class="cb">FILTERED</span></div><div id="st-states" class="hbar-list"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Cities — Streaming</span><span class="cb">FILTERED</span></div><div id="st-cities" class="hbar-list"></div></div>
+      </div>
+      <div class="g-2" style="margin-top:18px;">
+        <div class="card"><div class="ch"><span class="ct">State Distribution</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-st-state"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Streaming OS Breakdown</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-st-os"></canvas></div></div>
+      </div>
+    </div>
+
+    <div id="streaming-st-time" class="sub-panel">
+      <div class="card" style="margin-bottom:18px;"><div class="ch"><span class="ct">Streaming — Viewership by Hour (IST)</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-st-hour"></canvas></div></div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Prime Time vs Off-Peak Split</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-st-primetime"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Avg Freq by Time Slot</span><span class="cb">FILTERED</span></div><div id="st-timeslot-freq" class="hbar-list"></div></div>
+      </div>
+    </div>
+
+    <div id="streaming-st-day" class="sub-panel">
+      <div class="card" style="margin-bottom:18px;"><div class="ch"><span class="ct">Daily Streaming Impressions</span><span class="cb">FILTERED</span></div><div class="h320"><canvas id="c-st-daily"></canvas></div></div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Streaming by Day of Week</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-st-dow"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Days by Impressions</span><span class="cb">FILTERED</span></div><div id="st-top-days" class="hbar-list"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ OVERLAP & DEDUP ═══════════════════════════════ -->
+  <div id="tab-overlap" class="tab-content">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSub('overlap','ov-summary',this)">Summary</button>
+      <button class="sub-tab" onclick="switchSub('overlap','ov-daily',this)">By Day</button>
+      <button class="sub-tab" onclick="switchSub('overlap','ov-incr',this)">Incremental Reach</button>
+      <button class="sub-tab" onclick="switchSub('overlap','ov-time',this)">By Time of Day</button>
+    </div>
+
+    <!-- ── SUMMARY ─────────────────────────────────────────────── -->
+    <div id="overlap-ov-summary" class="sub-panel active">
+      <div class="insight-box">
+        Audience overlap is measured using unique <strong>Samba IDs</strong> — one ID per household —
+        across all dates, apps, and channels. Three segments:
+        <strong style="color:var(--accent)">Streaming-only</strong> (never saw Linear),
+        <strong style="color:var(--a3)">Cross-platform</strong> (saw both), and
+        <strong style="color:var(--a2)">Linear-only</strong> (the true incremental reach Linear TV adds).
+      </div>
+
+      <!-- KPI row -->
+      <div class="g-4" id="ov-kpis" style="margin-bottom:18px;"></div>
+
+      <!-- 3 segment cards -->
+      <div class="g-3" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="ch"><span class="ct">Streaming-Only Audience</span><span class="cb" style="color:var(--accent)">UNIQUE TO STREAMING</span></div>
+          <div id="ov-card-st" style="padding:6px 0;"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Cross-Platform Audience</span><span class="cb" style="color:var(--a3)">SAW BOTH PLATFORMS</span></div>
+          <div id="ov-card-both" style="padding:6px 0;"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Linear-Only (Incremental)</span><span class="cb" style="color:var(--a2)">NET-NEW FROM LINEAR</span></div>
+          <div id="ov-card-lt" style="padding:6px 0;"></div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="ch"><span class="ct">Audience Segment Split</span><span class="cb">TRUE SMBA ID</span></div>
+          <div class="h280"><canvas id="c-ov-segments"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Impressions Split</span><span class="cb">STREAMING VS LINEAR</span></div>
+          <div class="h280"><canvas id="c-ov-impr-split"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Full table -->
+      <div class="card">
+        <div class="ch"><span class="ct">Overlap Summary Table</span><span class="cb">SMBA ID SET INTERSECTION</span></div>
+        <div id="ov-overlap-table" style="padding:4px 0;"></div>
+      </div>
+    </div>
+
+    <!-- ── BY DAY ──────────────────────────────────────────────── -->
+    <div id="overlap-ov-daily" class="sub-panel">
+      <div class="insight-box">Daily audience segments using true smba_id sets per calendar day. The stacked chart shows how many devices were streaming-only, cross-platform, or linear-only each day. Requires JSON from <code>prepare_dashboard_data.py</code>.</div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Daily Audience Segments — Streaming Only / Cross-Platform / Linear Only</span><span class="cb">TRUE SMBA ID · STACKED</span></div>
+        <div class="h360"><canvas id="c-ov-daily-seg"></canvas></div>
+      </div>
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Daily Cross-Platform Audience</span><span class="cb">SAW BOTH PLATFORMS THAT DAY</span></div><div class="h260"><canvas id="c-ov-daily-both"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Daily Unduplicated Reach</span><span class="cb">COMBINED UNIQUE DEVICES</span></div><div class="h260"><canvas id="c-ov-daily-undup"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Daily Impressions — Streaming vs Linear TV</span><span class="cb">FILTERED DATA</span></div>
+        <div class="h260"><canvas id="c-ov-daily-impr"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── INCREMENTAL REACH ───────────────────────────────────── -->
+    <div id="overlap-ov-incr" class="sub-panel">
+      <div class="insight-box">
+        <strong>Incremental reach</strong> answers: how many additional unique viewers does Linear TV add on top of a Streaming-only campaign?
+        Linear-only devices (<span style="color:var(--a2)">yellow segment</span>) are the audience who cannot be reached via Streaming at all — that is the true incremental value of adding Linear TV.
+      </div>
+      <div class="g-4" id="ov-incr-kpis" style="margin-bottom:18px;"></div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Daily Reach by Platform — Streaming vs Linear vs Combined</span><span class="cb">TRUE SMBA ID PER DAY</span></div>
+        <div class="h360"><canvas id="c-ov-incr-reach"></canvas></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Daily Incremental Reach from Linear TV</span><span class="cb">LINEAR-ONLY DEVICES PER DAY</span></div><div class="h280"><canvas id="c-ov-incr-lt-only"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Cross-Platform % of Linear Audience</span><span class="cb">% OF LINEAR WHO ALSO WATCHED STREAMING</span></div><div class="h280"><canvas id="c-ov-incr-xpct"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ── BY TIME OF DAY ─────────────────────────────────────── -->
+    <div id="overlap-ov-time" class="sub-panel">
+      <div class="insight-box">Hour-by-hour impression distribution for Streaming vs Linear TV (IST). Co-occurrence in the same hours indicates potential audience overlap during that viewing window.</div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch"><span class="ct">Impressions by Hour of Day — Streaming vs Linear TV</span><span class="cb">IST</span></div>
+        <div class="h320"><canvas id="c-ov-hour-split"></canvas></div>
+      </div>
+      <div class="g-2">
+        <div class="card"><div class="ch"><span class="ct">Day-of-Week — Streaming vs Linear</span><span class="cb">FILTERED</span></div><div class="h280"><canvas id="c-ov-dow-split"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Time Slot Summary</span><span class="cb">APPROX</span></div><div id="ov-timeslot-table" style="padding:4px 0;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ AUDIENCE ════════════════════════════════ -->
+  <div id="tab-audience" class="tab-content">
+    <div class="panel-wrap">
+      <div class="sec-lbl">FREQUENCY ANALYSIS</div>
+
+      <!-- Type selector for frequency -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);font-family:var(--mono);">TYPE</span>
+        <div style="display:flex;gap:6px;" id="freq-type-btns">
+          <button class="chip inc" data-ft="all" onclick="selectFreqType('all',this)">All</button>
+          <button class="chip" data-ft="Streaming" onclick="selectFreqType('Streaming',this)">Streaming</button>
+          <button class="chip" data-ft="Linear TV" onclick="selectFreqType('Linear TV',this)">Linear TV</button>
+        </div>
+      </div>
+
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card">
+          <div class="ch"><span class="ct">Frequency Distribution</span><span class="cb" id="freq-dist-badge">GLOBAL</span></div>
+          <div id="freq-list"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Frequency Percentile Analysis</span><span class="cb" id="freq-pct-badge">GLOBAL</span></div>
+          <div id="pct-table-wrap"></div>
+        </div>
+      </div>
+      <div class="g-2" style="margin-bottom:18px;">
+        <div class="card"><div class="ch"><span class="ct">Frequency Distribution Chart</span><span class="cb">GLOBAL</span></div><div class="h240"><canvas id="c-freq-bar"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Avg Frequency by Content Type</span><span class="cb">FILTERED</span></div><div class="h240"><canvas id="c-freq-ct"></canvas></div></div>
+      </div>
+
+      <div class="sec-lbl">AVG FREQUENCY BY AUDIENCE QUINTILE</div>
+      <div class="card" style="margin-bottom:18px;">
+        <div class="ch">
+          <span class="ct">Avg Frequency — Top 20% to Bottom 20%</span>
+          <span class="cb" id="quintile-badge">ALL TYPES</span>
+        </div>
+        <div class="h280"><canvas id="c-freq-quintile"></canvas></div>
+      </div>
+
+      <div class="sec-lbl">DEVICE & PLATFORM</div>
+      <div class="g-3">
+        <div class="card"><div class="ch"><span class="ct">TV Input Type</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-input"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Device Category</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-dev2"></canvas></div></div>
+        <div class="card"><div class="ch"><span class="ct">Streaming OS</span><span class="cb">FILTERED</span></div><div class="h200"><canvas id="c-os"></canvas></div></div>
+      </div>
+      <div class="sec-lbl" style="margin-top:18px;">GEO OVERVIEW</div>
+      <div class="g-2" style="margin-top:0;">
+        <div class="card"><div class="ch"><span class="ct">Top States (All Content)</span><span class="cb">FILTERED</span></div><div id="all-states" class="hbar-list"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Top Cities (All Content)</span><span class="cb">FILTERED</span></div><div id="all-cities" class="hbar-list"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #dashboard -->
+
+<!-- ── GLOBAL EXPORT MENU ── -->
+<div class="export-menu" id="global-export-menu">
+  <div class="export-menu-header">
+    <div class="export-menu-title">Export Dashboard</div>
+    <div class="export-menu-sub" id="export-menu-subtitle">All tabs · filtered data</div>
+  </div>
+  <div class="export-section">
+    <div class="export-section-lbl">Full Dashboard</div>
+    <div class="export-item" onclick="exportAll('xlsx')">
+      <div class="export-item-icon xlsx">⬡</div>
+      <div class="export-item-info">
+        <div class="export-item-name">Excel — All Tabs</div>
+        <div class="export-item-desc">6 sheets · Overview, Reach, Linear, Streaming, Overlap, Audience</div>
+      </div>
+    </div>
+    <div class="export-item" onclick="exportAll('pdf')">
+      <div class="export-item-icon pdf">⬡</div>
+      <div class="export-item-info">
+        <div class="export-item-name">PDF — Full Report</div>
+        <div class="export-item-desc">Designed multi-page report with charts</div>
+      </div>
+    </div>
+  </div>
+  <div class="export-divider"></div>
+  <div class="export-section">
+    <div class="export-section-lbl">Current Tab Only</div>
+    <div class="export-item" onclick="exportCurrentTab('xlsx')">
+      <div class="export-item-icon xlsx">📊</div>
+      <div class="export-item-info">
+        <div class="export-item-name">Excel — Current Tab</div>
+        <div class="export-item-desc" id="export-current-tab-label">Active tab data</div>
+      </div>
+    </div>
+    <div class="export-item" onclick="exportCurrentTab('pdf')">
+      <div class="export-item-icon pdf">📄</div>
+      <div class="export-item-info">
+        <div class="export-item-name">PDF — Current Tab</div>
+        <div class="export-item-desc">Single tab report</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PER-CARD EXPORT MENU ── -->
+<div class="card-export-menu" id="card-export-menu">
+  <div class="export-item" onclick="cardExport('xlsx')">
+    <div class="export-item-icon xlsx">⬡</div>
+    <div class="export-item-info"><div class="export-item-name">Export as Excel</div></div>
+  </div>
+  <div class="export-item" onclick="cardExport('pdf')">
+    <div class="export-item-icon pdf">⬡</div>
+    <div class="export-item-info"><div class="export-item-name">Export as PDF</div></div>
+  </div>
+</div>
+
+<!-- ── EXPORT TOAST ── -->
+<div class="export-toast" id="export-toast">
+  <div class="export-toast-icon" id="toast-icon">✓</div>
+  <div>
+    <div class="export-toast-msg" id="toast-msg">Export complete</div>
+    <div class="export-toast-sub" id="toast-sub"></div>
+  </div>
+</div>
+<div class="export-progress" id="export-progress"></div>
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const CC=['#00f5a0','#f5c518','#ff3d6e','#38bdf8','#a855f7','#fb923c','#34d399','#f472b6','#60a5fa','#fbbf24','#4ade80','#e879f9'];
+const APC=['#f5c518','#00f5a0','#ff3d6e','#38bdf8','#a855f7','#fb923c','#f472b6','#34d399','#60a5fa','#fbbf24'];
+const EX=new Set(['null','None','nan','','unknown','Unknown','NULL','N/A','n/a','NaN']);
+const EXA=new Set([...EX,'Linear TV','linear tv']);
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ─── CHART BASE ───────────────────────────────────────────────────────────────
+const CB={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{
+    legend:{labels:{color:'#7ea8c9',font:{family:"'Plus Jakarta Sans',sans-serif",size:11},boxWidth:10,padding:14}},
+    tooltip:{backgroundColor:'#0a1525',titleColor:'#e2eeff',bodyColor:'#7ea8c9',borderColor:'rgba(0,245,160,.18)',borderWidth:1,padding:11,
+      boxPadding:4,titleFont:{family:"'JetBrains Mono',monospace",size:11},bodyFont:{family:"'JetBrains Mono',monospace",size:11}}
+  }
+};
+function lightCB(){
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{labels:{color:'#2d5070',font:{family:"'Plus Jakarta Sans',sans-serif",size:11},boxWidth:10,padding:14}},
+      tooltip:{backgroundColor:'#fff',titleColor:'#0b1e35',bodyColor:'#2d5070',borderColor:'rgba(0,180,120,.35)',borderWidth:1,padding:11}
+    }
+  };
+}
+function getCB(){return document.body.dataset.theme==='light'?lightCB():CB;}
+function axisColor(){return document.body.dataset.theme==='light'?'#6a8baa':'#445e7a';}
+function gridColor(){return document.body.dataset.theme==='light'?'rgba(0,0,0,.06)':'rgba(255,255,255,.04)';}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const S={
+  raw:null, agg:[], f:[],
+  filters:{d0:'',d1:''},
+  freqType:'all',
+  charts:{}
+};
+// FS: filter sets — empty Set = "show all", Set with values = "show only these"
+const FS={ct:new Set(),app:new Set(),net:new Set(),dev:new Set()};
+
+// ─── FORMAT ───────────────────────────────────────────────────────────────────
+const fmt=n=>{if(n==null)return'—';if(n>=1e7)return(n/1e7).toFixed(2)+' Cr';if(n>=1e5)return(n/1e5).toFixed(1)+' L';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString('en-IN');};
+const fmtH=s=>{const h=Math.floor((s||0)/3600);if(h>=1e7)return(h/1e7).toFixed(2)+' Cr hrs';if(h>=1e5)return(h/1e5).toFixed(1)+' L hrs';if(h>=1e3)return(h/1e3).toFixed(1)+'K hrs';return h.toLocaleString('en-IN')+' hrs';};
+const fmtPct=n=>n!=null?(+n).toFixed(1)+'%':'—';
+const set$=(id,h)=>{const e=document.getElementById(id);if(e)e.innerHTML=h;};
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const t=document.body.dataset.theme==='dark'?'light':'dark';
+  document.body.dataset.theme=t;
+  document.getElementById('theme-thumb').textContent=t==='dark'?'🌙':'☀️';
+  // redraw all charts on theme change
+  if(S.raw)render();
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(S.raw){render();setTimeout(injectCardExportButtons,200);}
+}
+function switchSub(section,id,btn){
+  const wrap=document.getElementById('tab-'+section);
+  wrap.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+  wrap.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(section+'-'+id).classList.add('active');
+  if(S.raw)render();
+}
+
+// ─── FILE LOADING ─────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value='';});
+const zone=document.getElementById('upload-zone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0]);});
+function readFile(f){
+  const ext=f.name.split('.').pop().toLowerCase();
+  if(ext==='xlsx'||ext==='xls'){
+    // Show loading state
+    document.getElementById('upload-btn-text') && (document.getElementById('upload-btn-text').textContent='Processing Excel...');
+    showExcelProcessing(f.name);
+    const r=new FileReader();
+    r.onload=ev=>parseExcel(ev.target.result,f.name);
+    r.readAsArrayBuffer(f);
+  } else {
+    const r=new FileReader();r.onload=ev=>parseLoad(ev.target.result,f.name);r.readAsText(f,'UTF-8');
+  }
+}
+function showExcelProcessing(fname){
+  // Show a brief "processing" note in the upload zone
+  const zone=document.getElementById('upload-zone');
+  if(zone){
+    zone.innerHTML=`<span style="font-size:36px">⚙️</span>
+      <p style="margin-top:14px;font-size:14px;color:var(--accent);font-weight:600;">Processing ${fname}…</p>
+      <p style="margin-top:6px;font-size:12px;color:var(--text3);">Aggregating rows in your browser — this may take a moment</p>`;
+  }
+}
+function parseLoad(text,name){
+  let t=text.charCodeAt(0)===0xFEFF?text.slice(1):text;t=t.trim();
+  if(!t)return showErr('File is empty.',name);
+  if(!t.startsWith('{'))return showErr('Not a JSON object. First chars:\n'+t.slice(0,120),name);
+  let d;try{d=JSON.parse(t);}catch(e){
+    const pos=parseInt((e.message.match(/position (\d+)/)||[])[1]);
+    let ctx='';if(!isNaN(pos))ctx='\n\nNear char '+pos+':\n...'+t.slice(Math.max(0,pos-60),pos+60)+'...';
+    return showErr('JSON error: '+e.message+ctx,name);
+  }
+  if(!d.summary)return showErr('Missing "summary" key.',name);
+  boot(d);
+}
+
+// ─── IN-BROWSER EXCEL → DASHBOARD DATA CONVERSION ───────────────────────────
+function parseExcel(arrayBuffer, fname){
+  try{
+    const wb=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    const sheetName=wb.SheetNames[0];
+    const ws=wb.Sheets[sheetName];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:null,raw:false});
+    if(!rows.length){showErr('Excel file appears empty.',fname);resetUploadZone();return;}
+
+    // Detect columns
+    const cols=Object.keys(rows[0]);
+    console.log('Excel columns:',cols);
+
+    // Check it has required columns
+    const required=['content_type','smba_id'];
+    const missing=required.filter(c=>!cols.includes(c));
+    if(missing.length){showErr(`Missing required columns: ${missing.join(', ')}\nFound: ${cols.slice(0,8).join(', ')}...`,fname);resetUploadZone();return;}
+
+    // Run aggregation
+    const data=aggregateExcelRows(rows,fname);
+    boot(data);
+  }catch(e){
+    console.error('Excel parse error:',e);
+    showErr('Failed to parse Excel:\n'+e.message+'\n\nMake sure this is a Samba TV export with content_type, smba_id columns.',fname);
+    resetUploadZone();
+  }
+}
+function resetUploadZone(){
+  const zone=document.getElementById('upload-zone');
+  if(zone){
+    zone.innerHTML=`<span class="upload-icon">📡</span>
+      <p>Drag & drop your <strong>dashboard_data.json</strong> or <strong style="color:var(--a2)">raw Excel (.xlsx)</strong> here</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--text3);">JSON output of prepare_dashboard_data.py, or raw Samba TV Excel export</p>
+      <button class="upload-btn" onclick="document.getElementById('file-input').click()">⬆ Select File</button>`;
+  }
+}
+
+function cleanVal(v){
+  if(v===null||v===undefined||v==='null'||v==='NULL'||v==='None'||v==='nan'||v==='NaN'||v==='')return '';
+  return String(v).trim();
+}
+function parseGenre(raw){
+  if(!raw||raw==='null'||raw==='')return '';
+  const m=String(raw).match(/\{[^}]*,\s*([^}]+)\}/);
+  return m?m[1].trim():'';
+}
+function deviceCat(raw){
+  const v=cleanVal(raw);
+  if(!v||v==='null')return 'Unknown';
+  if(v==='This TV')return 'Smart TV';
+  return v;
+}
+function liveLabel(raw){
+  const v=cleanVal(raw);
+  const map={'LIVE':'Live','NOT LIVE':'Not Live','NULL OFFSET':'Null Offset','UNKNOWN':'Unknown','N/A':'N/A','':'N/A'};
+  return map[v]||v||'N/A';
+}
+function tsToHour(ts){
+  try{const n=Number(ts);if(isNaN(n))return -1;return(Math.floor(n/3600)+5)%24;}catch{return -1;}
+}
+
+function aggregateExcelRows(rows, fname){
+  // Aggregation mirrors prepare_dashboard_data.py logic
+  const streamingIds=new Set(), linearIds=new Set(), allIds=new Set();
+  const pivot={};
+  const hourCounts={}, freqByDevice={}, freqByDeviceCt={};
+  const appCounts={}, netCounts={}, ctCounts={}, devCounts={};
+  const genreCounts={}, titleCounts={}, cityCount={}, stateCount={}, inputCounts={};
+  const osCounts={};
+  let totalImpr=0, totalSecs=0;
+  const dates=new Set();
+
+  const STATE_NAMES={'mh':'Maharashtra','up':'Uttar Pradesh','tn':'Tamil Nadu','dl':'Delhi','ap':'Andhra Pradesh','wb':'West Bengal','hr':'Haryana','ka':'Karnataka','mp':'Madhya Pradesh','rj':'Rajasthan','ts':'Telangana','gj':'Gujarat','pb':'Punjab','kl':'Kerala','br':'Bihar','or':'Odisha','jh':'Jharkhand','uk':'Uttarakhand','as':'Assam','hp':'Himachal Pradesh','ch':'Chandigarh','ga':'Goa','jk':'Jammu & Kashmir','mn':'Manipur','ml':'Meghalaya','mz':'Mizoram','nl':'Nagaland','sk':'Sikkim','tr':'Tripura'};
+
+  const incr=(obj,k,n=1)=>{if(k&&k!=='null'&&k!=='')obj[k]=(obj[k]||0)+n;};
+
+  rows.forEach(row=>{
+    const ct=cleanVal(row['content_type']);
+    const devId=cleanVal(row['smba_id'])||'unknown';
+    const app=cleanVal(row['application'])||'Unknown';
+    const net=cleanVal(row['network_title'])||cleanVal(row['network'])||'';
+    const netFinal=(net&&net!=='null')?net:(ct==='Streaming'?app:'Unknown');
+    const expSecs=parseFloat(row['exposure_duration'])||0;
+    const genre=parseGenre(row['genres']);
+    const title=cleanVal(row['title'])||'';
+    const city=cleanVal(row['city'])||'';
+    const sub=cleanVal(row['subdivision'])||'';
+    const os=cleanVal(row['source_device_os'])||'';
+    const dev=deviceCat(row['source_device_category']);
+    const live=liveLabel(row['is_live']);
+    const inputType=cleanVal(row['tv_input_type'])||'';
+
+    // Date from yyyy/mm/dd cols or from exposure_start_ts
+    let date='';
+    if(row['yyyy']&&row['mm']&&row['dd']){
+      const y=String(row['yyyy']),m=String(row['mm']).padStart(2,'0'),d=String(row['dd']).padStart(2,'0');
+      if(y!=='null'&&y!=='')date=`${y}-${m}-${d}`;
+    }
+
+    // Hour
+    const hour=tsToHour(row['exposure_start_ts']);
+    if(hour>=0)incr(hourCounts,String(hour));
+
+    // Global tracking
+    totalImpr++;totalSecs+=expSecs;
+    allIds.add(devId);if(date)dates.add(date);
+
+    // Overlap tracking
+    if(ct==='Streaming')streamingIds.add(devId);
+    if(ct==='Linear TV')linearIds.add(devId);
+
+    // Top-N counters
+    incr(ctCounts,ct);incr(devCounts,dev);incr(genreCounts,genre);incr(cityCount,city);incr(stateCount,sub);incr(titleCounts,title);incr(inputCounts,inputType);
+    if(ct==='Streaming'){incr(appCounts,app);incr(osCounts,os);}
+    if(ct==='Linear TV')incr(netCounts,netFinal);
+
+    // Frequency distribution
+    freqByDevice[devId]=(freqByDevice[devId]||0)+1;
+    if(ct){
+      if(!freqByDeviceCt[ct])freqByDeviceCt[ct]={};
+      freqByDeviceCt[ct][devId]=(freqByDeviceCt[ct][devId]||0)+1;
+    }
+
+    // Pivot
+    const key=[ct,app,dev,live,date,city,sub,genre,netFinal,title].join('\x00');
+    if(pivot[key]){pivot[key][0]++;pivot[key][1]++;pivot[key][2]+=expSecs;}
+    else pivot[key]=[1,1,expSecs];
+  });
+
+  // Build frequency distribution
+  const freqDist=(fd)=>{const v=Object.values(fd);return{'1':v.filter(c=>c===1).length,'2-3':v.filter(c=>c>=2&&c<=3).length,'4-6':v.filter(c=>c>=4&&c<=6).length,'7-10':v.filter(c=>c>=7&&c<=10).length,'11+':v.filter(c=>c>=11).length};};
+
+  // Build quintiles
+  const freqQuintiles=(fd)=>{
+    const vals=Object.values(fd).sort((a,b)=>b-a);if(!vals.length)return[];
+    const sz=Math.ceil(vals.length/5);
+    return['Top 20%','Second 20%','Third 20%','Fourth 20%','Bottom 20%'].map((l,i)=>{
+      const sl=vals.slice(i*sz,(i+1)*sz);
+      return{label:l,avg_freq:sl.length?(sl.reduce((a,b)=>a+b,0)/sl.length).toFixed(2):0};
+    });
+  };
+
+  // Top-N helper
+  const topN=(obj,n=12,excl=new Set(['','null','None','nan','Linear TV','linear tv','Unknown']))=>
+    Object.entries(obj).filter(([k])=>!excl.has(k)).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([n,i])=>({name:n,impressions:i}));
+
+  // Pivot → records
+  const pivotKeys=['content_type','application','device_category','is_live','date','city','subdivision','genre','network','title'];
+  const aggregated=Object.entries(pivot).map(([key,[imp,ud,exp]])=>{
+    const parts=key.split('\x00');
+    const rec={};pivotKeys.forEach((k,i)=>rec[k]=parts[i]||'');
+    rec.impressions=imp;rec.unique_devices=ud;rec.exposure_seconds=Math.round(exp);
+    return rec;
+  }).filter(r=>r.impressions>0);
+
+  // Hour of day
+  const hourData=Array.from({length:24},(_,h)=>({hour:(h<10?'0'+h:String(h))+':00',impressions:hourCounts[String(h)]||0}));
+
+  // Filter values
+  const sortedDates=[...dates].filter(d=>d&&d!=='null').sort();
+  const fvApp=[...new Set(aggregated.filter(r=>r.content_type==='Streaming'&&r.application&&!['null','','Linear TV','linear tv'].includes(r.application)).map(r=>r.application))].sort();
+  const fvNet=[...new Set(aggregated.filter(r=>r.content_type==='Linear TV'&&r.network&&r.network!=='null').map(r=>r.network))].sort();
+  const fvDev=[...new Set(aggregated.filter(r=>r.device_category&&r.device_category!=='null').map(r=>r.device_category))].sort();
+
+  // Overlap
+  const bothIds=new Set([...streamingIds].filter(id=>linearIds.has(id)));
+  const unionIds=new Set([...streamingIds,...linearIds]);
+  const overlap_analysis={
+    streaming_devices:streamingIds.size,
+    linear_devices:linearIds.size,
+    streaming_only_devices:streamingIds.size-bothIds.size,
+    linear_only_devices:linearIds.size-bothIds.size,
+    both_devices:bothIds.size,
+    unduplicated_total:unionIds.size
+  };
+
+  const ud=allIds.size;
+  return{
+    summary:{total_impressions:totalImpr,unique_devices:ud,avg_frequency:ud?+(totalImpr/ud).toFixed(2):0,total_exposure_seconds:Math.round(totalSecs),streaming_impressions:ctCounts['Streaming']||0,linear_impressions:ctCounts['Linear TV']||0,date_range:{start:sortedDates[0]||'',end:sortedDates[sortedDates.length-1]||''},generated_at:new Date().toLocaleString('en-IN')+' (from '+fname+')'},
+    content_type_split:Object.entries(ctCounts).map(([k,v])=>[k,v]),
+    device_split:Object.entries(devCounts).map(([k,v])=>[k,v]),
+    freq_distribution:freqDist(freqByDevice),
+    freq_distribution_by_type:Object.fromEntries(Object.entries(freqByDeviceCt).map(([ct,fd])=>[ct,freqDist(fd)])),
+    freq_quintiles:freqQuintiles(freqByDevice),
+    freq_quintiles_by_type:Object.fromEntries(Object.entries(freqByDeviceCt).map(([ct,fd])=>[ct,freqQuintiles(fd)])),
+    hour_of_day:hourData,
+    streaming_apps:topN(appCounts,10,new Set(['','null','None','nan','Linear TV','linear tv','Unknown'])),
+    streaming_os:topN(osCounts,8),
+    linear_networks:topN(netCounts,12,new Set(['','null','None','nan'])),
+    live_split:Object.entries({}),
+    tv_input_types:topN(inputCounts,8),
+    top_cities:topN(cityCount,15),
+    top_states:topN(Object.fromEntries(Object.entries(stateCount).map(([k,v])=>[STATE_NAMES[k]||k,v])),15),
+    top_genres:topN(genreCounts,12),
+    top_titles:topN(titleCounts,15),
+    filter_values:{content_type:['Linear TV','Streaming'].filter(t=>ctCounts[t]),application:fvApp,device_category:fvDev,is_live:[],dates:sortedDates},
+    overlap_analysis,
+    aggregated,
+  };
+}
+function showErr(msg,name){
+  const b=document.getElementById('error-box');b.style.display='block';
+  document.getElementById('err-fname').textContent=name||'';
+  document.getElementById('err-msg').textContent=msg;
+}
+function boot(data){
+  S.raw=data;S.agg=data.aggregated||[];S.f=[...S.agg];
+  S.filters={d0:'',d1:''};
+  FS.ct.clear();FS.app.clear();FS.net.clear();FS.dev.clear();
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  Object.values(S.charts).forEach(c=>c&&c.destroy());S.charts={};
+  buildFilterDropdowns();
+  injectTabExportButtons();
+  render();
+  setTimeout(injectCardExportButtons,200);
+  // Sticky shell handles offset automatically
+}
+
+function injectTabExportButtons(){
+  // Inject into main tabs bar
+  const tabsBar=document.querySelector('.main-tabs');
+  if(tabsBar&&!tabsBar.querySelector('.tab-export-btn')){
+    const iconSVG=`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v8M5 6l3 3 3-3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>`;
+    const btn=document.createElement('button');
+    btn.className='tab-export-btn';
+    btn.title='Export this tab';
+    btn.innerHTML=iconSVG;
+    btn.onclick=(e)=>{e.stopPropagation();openTabExportMenu(e);};
+    tabsBar.appendChild(btn);
+  }
+}
+
+// ─── FILTER DROPDOWNS ────────────────────────────────────────────────────────
+const fmtI=n=>{if(!n)return'';if(n>=1e7)return(n/1e7).toFixed(1)+'Cr';if(n>=1e5)return(n/1e5).toFixed(1)+'L';if(n>=1e3)return(n/1e3).toFixed(0)+'K';return n+'';}
+
+function buildFilterDropdowns(){
+  const raw=S.raw,fv=raw.filter_values||{};
+
+  // Content type — no impression counts available directly, just labels
+  const ctVals=(fv.content_type||[]).filter(v=>v&&!EX.has(v));
+  buildFGList('ct',ctVals.map(v=>({label:v,val:v,impr:null})));
+
+  // Apps — with impression counts from streaming_apps
+  const appImprMap=Object.fromEntries((raw.streaming_apps||[]).map(a=>[a.name,a.impressions]));
+  const appVals=(raw.streaming_apps||[]).filter(a=>a.name&&!EXA.has(a.name)).slice(0,24);
+  buildFGList('app',appVals.map(a=>({label:a.name,val:a.name,impr:a.impressions})));
+
+  // Networks — with impression counts
+  const netVals=(raw.linear_networks||[]).filter(n=>n.name&&!EX.has(n.name)).slice(0,24);
+  buildFGList('net',netVals.map(n=>({label:n.name,val:n.name,impr:n.impressions})));
+
+  // Device
+  const devVals=(fv.device_category||[]).filter(v=>v&&!EX.has(v));
+  buildFGList('dev',devVals.map(v=>({label:v,val:v,impr:null})));
+
+  // Dates
+  const dates=fv.dates||[];
+  if(dates.length){
+    const d0=dates[0],d1=dates[dates.length-1];
+    ['date-start','date-end'].forEach(id=>{const el=document.getElementById(id);el.min=d0;el.max=d1;});
+    document.getElementById('date-hint').textContent='('+d0+' → '+d1+')';
+  }
+}
+
+function buildFGList(key,items){
+  const el=document.getElementById('fg-list-'+key);if(!el)return;
+  // Empty FS = "show all" = all items visually checked
+  el.innerHTML=items.map(item=>{
+    const chk=FS[key].size===0||FS[key].has(item.val);
+    return `<div class="fg-check-item${chk?' checked':''}" data-key="${key}" data-val="${item.val}" onclick="toggleFGItem('${key}','${item.val.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',this)">
+      <div class="fg-checkbox">${chk?'✓':''}</div>
+      <span class="fg-check-lbl">${item.label}</span>
+      ${item.impr?`<span class="fg-check-impr">${fmtI(item.impr)}</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toggleFGItem(key,val,el){
+  if(FS[key].size===0){
+    // All-mode: clicking one item deselects it → add ALL others to FS (fast Set op, not re-filtering)
+    getAllFGVals(key).forEach(v=>{if(v!==val)FS[key].add(v);});
+    // Update UI: this item unchecked, all others stay checked
+    document.querySelectorAll(`#fg-list-${key} .fg-check-item`).forEach(item=>{
+      const mine=item.dataset.val===val;
+      item.classList.toggle('checked',!mine);
+      item.querySelector('.fg-checkbox').textContent=mine?'':'✓';
+    });
+  } else if(FS[key].has(val)){
+    FS[key].delete(val);
+    if(FS[key].size===0){
+      // All items now selected → back to all-mode, show all checked
+      document.querySelectorAll(`#fg-list-${key} .fg-check-item`).forEach(item=>{
+        item.classList.add('checked');item.querySelector('.fg-checkbox').textContent='✓';
+      });
+    } else {
+      el.classList.remove('checked');el.querySelector('.fg-checkbox').textContent='';
+    }
+  } else {
+    FS[key].add(val);el.classList.add('checked');el.querySelector('.fg-checkbox').textContent='✓';
+    // If all are now selected, go back to all-mode (empty FS = faster filtering)
+    if(FS[key].size===getAllFGVals(key).length) FS[key].clear();
+  }
+  updateFGBadge(key);applyFilters();
+}
+function fgSelectAll(key){
+  // Empty FS = show all = all visually checked (fast — no per-value enumeration in filter)
+  FS[key].clear();
+  document.querySelectorAll(`#fg-list-${key} .fg-check-item`).forEach(el=>{
+    el.classList.add('checked');el.querySelector('.fg-checkbox').textContent='✓';
+  });
+  updateFGBadge(key);applyFilters();
+}
+function fgClear(key){
+  // Clear = remove this filter entirely = back to show-all state
+  // Fully rebuild the list so visual state is guaranteed fresh (elements may have been moved to body)
+  FS[key].clear();
+  // Re-render the list items with all checked (empty FS = all pass = all checked)
+  const listEl=document.getElementById('fg-list-'+key);
+  if(listEl){
+    listEl.querySelectorAll('.fg-check-item').forEach(el=>{
+      el.classList.add('checked');el.querySelector('.fg-checkbox').textContent='✓';
+    });
+  }
+  updateFGBadge(key);applyFilters();
+}
+function updateFGBadge(key){
+  const badge=document.getElementById('fg-badge-'+key);
+  const btn=document.getElementById('fg-btn-'+key);
+  const n=FS[key].size;
+  if(n>0&&n<getAllFGVals(key).length){
+    badge.textContent=n;badge.style.display='';btn.classList.add('active');
+  }else{badge.style.display='none';btn.classList.remove('active');}
+}
+function getAllFGVals(key){
+  return Array.from(document.querySelectorAll(`#fg-list-${key} .fg-check-item`)).map(e=>e.dataset.val);
+}
+
+// Toggle dropdown open/close — uses position:fixed + getBoundingClientRect for z-index safety
+let _openFG=null;
+function toggleFG(key,btn){
+  const drop=document.getElementById('fg-drop-'+key);
+  const isOpen=drop.classList.contains('open');
+  closeAllFG();
+  if(!isOpen){
+    // Move dropdown to <body> to escape backdrop-filter stacking contexts on parent elements
+    // (backdrop-filter creates a new stacking context that can visually trap fixed children)
+    if(drop.parentElement!==document.body) document.body.appendChild(drop);
+    // Position using fixed coords relative to button
+    const r=btn.getBoundingClientRect();
+    drop.style.left=r.left+'px';
+    drop.style.top=(r.bottom+4)+'px';
+    // Clamp to right edge
+    drop.style.display='block';
+    const dw=drop.offsetWidth;
+    const dh=drop.offsetHeight;
+    if(r.left+dw>window.innerWidth-12) drop.style.left=(window.innerWidth-dw-12)+'px';
+    // Clamp bottom: if dropdown would go off-screen, open upward instead
+    if(r.bottom+4+dh>window.innerHeight-8) drop.style.top=(r.top-dh-4)+'px';
+    drop.classList.add('open');
+    btn.classList.add('open');
+    _openFG=key;
+  }
+}
+function closeAllFG(){
+  document.querySelectorAll('.fg-dropdown').forEach(d=>{d.classList.remove('open');d.style.display='none';});
+  document.querySelectorAll('.fg-btn').forEach(b=>b.classList.remove('open'));
+  _openFG=null;
+}
+// Close on outside click or Escape
+document.addEventListener('click',e=>{
+  if(_openFG&&!e.target.closest('.fg-dropdown')&&!e.target.closest('.fg-btn'))closeAllFG();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAllFG();});
+
+// ─── FILTERING ────────────────────────────────────────────────────────────────
+function applyFilters(){
+  S.filters.d0=document.getElementById('date-start').value;
+  S.filters.d1=document.getElementById('date-end').value;
+  const{d0,d1}=S.filters;
+
+  S.f=S.agg.filter(r=>{
+    if(FS.ct.size&&!FS.ct.has(r.content_type))return false;
+    // App filter only applies to Streaming rows — Linear TV has no application value
+    if(FS.app.size&&r.content_type==='Streaming'&&!FS.app.has(r.application))return false;
+    // Network filter only applies to Linear TV rows — Streaming has no network value
+    if(FS.net.size&&r.content_type==='Linear TV'&&!FS.net.has(r.network))return false;
+    if(FS.dev.size&&!FS.dev.has(r.device_category))return false;
+    if(d0&&r.date&&r.date<d0)return false;
+    if(d1&&r.date&&r.date>d1)return false;
+    return true;
+  });
+  updateSummary();render();
+}
+function updateSummary(){
+  const{d0,d1}=S.filters;
+  const parts=[];
+  const fmtSet=(lbl,s)=>{if(s.size){const arr=[...s];const show=arr.slice(0,3).join(', ')+(arr.length>3?` +${arr.length-3}`:'');parts.push(lbl+': '+show);}};
+  fmtSet('Type',FS.ct);fmtSet('App',FS.app);fmtSet('Network',FS.net);fmtSet('Device',FS.dev);
+  if(d0||d1)parts.push('Date: '+(d0||'start')+' → '+(d1||'end'));
+  const el=document.getElementById('filter-summary');
+  el.textContent=parts.length?'Active filters: '+parts.join(' · '):'';
+  el.classList.toggle('on',parts.length>0);
+}
+function resetFilters(){
+  S.filters={d0:'',d1:''};
+  FS.ct.clear();FS.app.clear();FS.net.clear();FS.dev.clear();
+  document.getElementById('date-start').value='';
+  document.getElementById('date-end').value='';
+  ['ct','app','net','dev'].forEach(k=>{
+    // Empty FS = show all = all items visually checked
+    document.querySelectorAll(`#fg-list-${k} .fg-check-item`).forEach(el=>{
+      el.classList.add('checked');el.querySelector('.fg-checkbox').textContent='✓';
+    });
+    updateFGBadge(k);
+  });
+  S.freqType='all';
+  document.querySelectorAll('[data-ft]').forEach(b=>{b.classList.remove('inc');if(b.dataset.ft==='all')b.classList.add('inc');});
+  S.f=[...S.agg];updateSummary();render();
+}
+
+// ─── AGGREGATE HELPERS ────────────────────────────────────────────────────────
+const sumI=rows=>rows.reduce((s,r)=>s+(r.impressions||0),0);
+const sumS=rows=>rows.reduce((s,r)=>s+(r.exposure_seconds||0),0);
+const sumU=rows=>rows.reduce((s,r)=>s+(r.unique_devices||0),0);
+
+function gby(rows,key,n=12,excl=EX){
+  const m={};
+  rows.forEach(r=>{const k=r[key];if(!k||excl.has(String(k)))return;m[k]=(m[k]||0)+(r.impressions||0);});
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+function gbyW(rows,key,n=12,excl=EX){
+  const m={};
+  rows.forEach(r=>{const k=r[key];if(!k||excl.has(String(k)))return;m[k]=(m[k]||0)+(r.exposure_seconds||0);});
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+function gbyFreq(rows,key,n=12,excl=EX){
+  const mi={},mu={};
+  rows.forEach(r=>{
+    const k=r[key];if(!k||excl.has(String(k)))return;
+    mi[k]=(mi[k]||0)+(r.impressions||0);
+    mu[k]=(mu[k]||0)+(r.unique_devices||0);
+  });
+  return Object.entries(mi).map(([k,i])=>[k,mu[k]?(i/mu[k]):0]).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+function gbyDate(rows,ct=null){
+  const m={};
+  rows.forEach(r=>{
+    if(!r.date||r.date==='null'||r.date==='')return;
+    if(ct&&r.content_type!==ct)return;
+    m[r.date]=(m[r.date]||0)+(r.impressions||0);
+  });
+  return Object.entries(m).sort((a,b)=>a[0]<b[0]?-1:1);
+}
+// Group by date — unique_devices
+function gbyDateU(rows,ct=null){
+  const m={};
+  rows.forEach(r=>{
+    if(!r.date||r.date==='null'||r.date==='')return;
+    if(ct&&r.content_type!==ct)return;
+    m[r.date]=(m[r.date]||0)+(r.unique_devices||0);
+  });
+  return Object.entries(m).sort((a,b)=>a[0]<b[0]?-1:1);
+}
+function gbyDow(rows,ct=null){
+  const m={0:0,1:0,2:0,3:0,4:0,5:0,6:0};
+  rows.forEach(r=>{
+    if(!r.date||r.date==='null'||r.date==='')return;
+    if(ct&&r.content_type!==ct)return;
+    const d=new Date(r.date);if(isNaN(d))return;
+    m[d.getDay()]=(m[d.getDay()]||0)+(r.impressions||0);
+  });
+  return DOW.map((n,i)=>[n,m[i]||0]);
+}
+// Pseudo hour from pivot: since pivot doesn't store hour directly, use raw hour_of_day
+// For per-medium hour, split raw hour_of_day using ct ratio per hour (approximation)
+function hourDataFor(ct){
+  const raw=S.raw.hour_of_day||[];
+  if(!ct)return raw;
+  // compute ratio of ct in filtered data
+  const d=S.f;
+  const total=sumI(d)||1;
+  const ctTotal=sumI(d.filter(r=>r.content_type===ct));
+  const ratio=ctTotal/total;
+  return raw.map(h=>({hour:h.hour,impressions:Math.round(h.impressions*ratio)}));
+}
+
+// ─── MAIN RENDER ─────────────────────────────────────────────────────────────
+function render(){
+  const d=S.f,raw=S.raw,s=raw.summary||{};
+  // header
+  const dr=s.date_range||{};
+  set$('hdr-meta','<span class="pulse"></span>'+dr.start+' → '+dr.end+'  ·  '+s.generated_at);
+
+  const activeTab=document.querySelector('.main-tab.active')?.textContent?.trim()||'Overview';
+
+  // Always render overview KPIs
+  renderOverviewKPIs(d,s);
+
+  if(activeTab==='Overview')renderOverview(d,raw);
+  else if(activeTab==='Reach Analysis')renderReach(d,raw);
+  else if(activeTab==='Linear TV')renderLinear(d,raw);
+  else if(activeTab==='Streaming')renderStreaming(d,raw);
+  else if(activeTab==='Overlap & Dedup')renderOverlap(d,raw);
+  else if(activeTab==='Audience')renderAudience(d,raw);
+}
+
+// ─── OVERVIEW ─────────────────────────────────────────────────────────────────
+function renderOverviewKPIs(d,s){
+  const impr=sumI(d),secs=sumS(d),ud=sumU(d);
+  const stI=sumI(d.filter(r=>r.content_type==='Streaming'));
+  const ltI=sumI(d.filter(r=>r.content_type==='Linear TV'));
+  set$('kv-impr',fmt(impr));set$('ks-impr',fmt(stI)+' stream · '+fmt(ltI)+' linear');
+  set$('kv-dev',fmt(ud)+'<span> approx</span>');
+  set$('kv-freq',ud?(impr/ud).toFixed(2):'—');
+  set$('kv-watch',fmtH(secs));set$('ks-watch',Math.round(secs/3600).toLocaleString('en-IN')+' hrs');
+  const dRows=d.filter(r=>r.date&&r.date!='null').map(r=>r.date).sort();
+  const dMin=dRows[0]||s.date_range?.start||'—',dMax=dRows[dRows.length-1]||s.date_range?.end||'—';
+  set$('kv-date',dMin);set$('ks-date',dMax&&dMax!==dMin?'to '+dMax:'');
+}
+
+function renderOverview(d,raw){
+  donut('c-ct',gby(d,'content_type',5,EX));
+  donut('c-dev',gby(d,'device_category',6,EX));
+  donut('c-live',gby(d.filter(r=>r.content_type==='Linear TV'),'is_live',5,new Set([...EX,'N/A'])));
+  hbar('c-apps',gby(d.filter(r=>r.content_type==='Streaming'),'application',12,EXA));
+  hbar('c-nets',gby(d.filter(r=>r.content_type==='Linear TV'),'network',12,EX));
+
+  // Top Content — combined Linear + Streaming titles
+  const titleExcl=new Set([...EX,'','null','None','nan','Unknown']);
+  const topContent=gby(d.filter(r=>r.title&&!titleExcl.has(r.title)),'title',12,titleExcl);
+  hbarList('ov-top-content',topContent);
+
+  // Top Genres — combined Linear + Streaming
+  const genreExcl=new Set([...EX,'','null','None','nan','Unknown']);
+  const topGenres=gby(d.filter(r=>r.genre&&!genreExcl.has(r.genre)),'genre',12,genreExcl);
+  if(topGenres.length){
+    replaceChart('c-ov-genre',{
+      type:'bar',
+      data:{
+        labels:topGenres.map(([l])=>l),
+        datasets:[{
+          data:topGenres.map(([,v])=>v),
+          backgroundColor:topGenres.map((_,i)=>CC[i%CC.length]+'bb'),
+          borderColor:topGenres.map((_,i)=>CC[i%CC.length]),
+          borderWidth:1,borderRadius:4,borderSkipped:false
+        }]
+      },
+      options:{...getCB(),indexAxis:'y',
+        plugins:{...getCB().plugins,legend:{display:false},
+          tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)}`}}},
+        scales:{x:{...axOpts()},y:{...axOptsY()}}}
+    });
+  } else {
+    const el=document.getElementById('c-ov-genre');
+    if(el){const p=el.parentElement;p.innerHTML='<div class="no-data">No genre data</div>';}
+  }
+
+  // spotlight
+  const apps=FS.app.size?[...FS.app]:[];
+  const spot=document.getElementById('app-spotlight');
+  spot.style.display=apps.length?'block':'none';
+  if(apps.length)renderSpotlight(d,apps);
+}
+
+function renderSpotlight(data,apps){
+  const totalI=sumI(data)||1;
+  const stats=apps.map((app,i)=>{
+    const rows=data.filter(r=>r.application===app);
+    const impr=sumI(rows),ud=sumU(rows),secs=sumS(rows);
+    return{app,impr,ud,secs,freq:ud?(impr/ud).toFixed(1):'—',share:((impr/totalI)*100).toFixed(1),color:APC[i%APC.length]};
+  });
+  set$('spot-cards',stats.map((s,i)=>`
+    <div class="spot-card" style="--sc:${s.color};animation-delay:${i*.06}s">
+      <div class="spot-name">${s.app}</div>
+      <div class="spot-row"><span class="spot-key">IMPR</span><span class="spot-val">${fmt(s.impr)}</span></div>
+      <div class="spot-row"><span class="spot-key">DEVICES</span><span class="spot-val">${fmt(s.ud)}</span></div>
+      <div class="spot-row"><span class="spot-key">AVG FREQ</span><span class="spot-val">${s.freq}×</span></div>
+      <div class="spot-row"><span class="spot-key">WATCH</span><span class="spot-val">${fmtH(s.secs)}</span></div>
+      <div class="share-bar"><div class="share-fill" style="width:${s.share}%"></div></div>
+      <div style="text-align:right;font-size:10px;font-family:var(--mono);color:var(--text3);margin-top:4px;">${s.share}% share</div>
+    </div>`).join(''));
+  set$('badge-gapp',apps.join(', ').slice(0,40));
+  // genres stacked
+  const genres=[...new Set(data.filter(r=>apps.includes(r.application)&&r.genre&&!EX.has(r.genre)).map(r=>r.genre))];
+  const gTot={};genres.forEach(g=>{gTot[g]=stats.reduce((s,{app})=>s+data.filter(r=>r.application===app&&r.genre===g).reduce((a,r)=>a+(r.impressions||0),0),0);});
+  const topG=Object.entries(gTot).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>x[0]);
+  replaceChart('c-gapp',{type:'bar',data:{labels:topG,datasets:stats.map(({app,color})=>({label:app,data:topG.map(g=>data.filter(r=>r.application===app&&r.genre===g).reduce((s,r)=>s+(r.impressions||0),0)),backgroundColor:color+'bb',borderColor:color,borderWidth:1,borderRadius:3}))},
+    options:{...getCB(),indexAxis:'y',scales:{x:{stacked:true,...axOpts()},y:{stacked:true,...axOptsY()}},plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}}}});
+  replaceChart('c-wapp',{type:'bar',data:{labels:stats.map(s=>s.app),datasets:[{data:stats.map(s=>Math.round(s.secs/3600)),backgroundColor:stats.map(s=>s.color+'99'),borderColor:stats.map(s=>s.color),borderWidth:1,borderRadius:4,borderSkipped:false}]},
+    options:{...getCB(),indexAxis:'y',plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.raw.toLocaleString('en-IN')} hours`}}},scales:{x:{...axOpts()},y:{...axOptsY()}}}});
+}
+
+// ─── REACH ─────────────────────────────────────────────────────────────────────
+function renderReach(d,raw){
+  const activeSub=document.querySelector('#tab-reach .sub-tab.active')?.textContent?.trim()||'Cumulative Reach';
+  const stD=gbyDate(d,'Streaming'),ltD=gbyDate(d,'Linear TV');
+  const allDates=[...new Set([...stD.map(x=>x[0]),...ltD.map(x=>x[0])])].sort();
+
+  if(activeSub==='Cumulative Reach'){
+    // KPIs
+    const stI=sumI(d.filter(r=>r.content_type==='Streaming'));
+    const ltI=sumI(d.filter(r=>r.content_type==='Linear TV'));
+    const totI=sumI(d);
+    set$('rk-total',fmt(totI));set$('rk-st',fmt(stI));set$('rks-st',fmtPct(totI?(stI/totI)*100:0)+' of total');
+    set$('rk-lt',fmt(ltI));set$('rks-lt',fmtPct(totI?(ltI/totI)*100:0)+' of total');
+    set$('rk-days',allDates.length.toString());
+    // peak day
+    const allD=gbyDate(d);const peakDay=allD.sort((a,b)=>b[1]-a[1])[0];
+    set$('rk-peak',peakDay?peakDay[0]:'—');set$('rks-peak',peakDay?fmt(peakDay[1])+' impr':'');
+
+    // cumulative chart by date
+    const stMap=Object.fromEntries(stD),ltMap=Object.fromEntries(ltD);
+    let cst=0,clt=0;const stC=[],ltC=[];
+    allDates.forEach(d=>{cst+=(stMap[d]||0);clt+=(ltMap[d]||0);stC.push(cst);ltC.push(clt);});
+    replaceChart('c-cumul',{
+      type:'line',data:{labels:allDates,datasets:[
+        {label:'Streaming (cumul.)',data:stC,borderColor:'#00f5a0',backgroundColor:'rgba(0,245,160,.08)',borderWidth:2.5,pointRadius:2,tension:.4,fill:true},
+        {label:'Linear TV (cumul.)',data:ltC,borderColor:'#f5c518',backgroundColor:'rgba(245,197,24,.06)',borderWidth:2.5,pointRadius:2,tension:.4,fill:true}
+      ]},options:{...getCB(),interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+    // streaming share by day
+    const shareLabels=allDates,shareData=allDates.map(d=>{
+      const s=(stMap[d]||0),t=s+(ltMap[d]||0);return t?+((s/t)*100).toFixed(1):0;
+    });
+    replaceChart('c-share',{
+      type:'line',data:{labels:shareLabels,datasets:[{label:'Streaming %',data:shareData,borderColor:'#00f5a0',backgroundColor:'rgba(0,245,160,.1)',borderWidth:2.5,pointRadius:1.5,tension:.4,fill:true}]},
+      options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.raw.toFixed(1)}% streaming`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:16,maxRotation:45}},y:{...axOpts(),min:0,max:100,ticks:{...axOpts().ticks,callback:v=>v+'%'}}}}});
+    // top days
+    const sortedDays=gbyDate(d).sort((a,b)=>b[1]-a[1]).slice(0,12);
+    hbarList('top-days-list',sortedDays);
+
+  } else if(activeSub==='Reach by Time'){
+    // daily chart
+    const stMap=Object.fromEntries(stD),ltMap=Object.fromEntries(ltD);
+    replaceChart('c-daily',{
+      type:'bar',data:{labels:allDates,datasets:[
+        {label:'Streaming',data:allDates.map(d=>stMap[d]||0),backgroundColor:'rgba(0,245,160,.7)',borderColor:'#00f5a0',borderWidth:1,borderRadius:2},
+        {label:'Linear TV',data:allDates.map(d=>ltMap[d]||0),backgroundColor:'rgba(245,197,24,.7)',borderColor:'#f5c518',borderWidth:1,borderRadius:2}
+      ]},options:{...getCB(),interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+        scales:{x:{stacked:true,...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},y:{stacked:true,...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+    // hour
+    const hourData=raw.hour_of_day||[];
+    replaceChart('c-hour',hourBarCfg(hourData));
+    // dow
+    replaceChart('c-dow',dowBarCfg(gbyDow(d)));
+
+  } else if(activeSub==='Incremental Reach by Day'){
+    const stMap=Object.fromEntries(stD),ltMap=Object.fromEntries(ltD);
+    const totalByDay=allDates.map(d=>(stMap[d]||0)+(ltMap[d]||0));
+    const avg=totalByDay.length?Math.round(totalByDay.reduce((a,b)=>a+b,0)/totalByDay.length):0;
+    const maxIdx=totalByDay.indexOf(Math.max(...totalByDay,0));
+    const minIdx=totalByDay.indexOf(Math.min(...totalByDay.filter(v=>v>0),0));
+    set$('rk-avg-daily',fmt(avg));
+    set$('rk-peak-incr',fmt(totalByDay[maxIdx]||0));set$('rks-peak-incr',allDates[maxIdx]||'—');
+    set$('rk-low-incr',fmt(totalByDay[minIdx]||0));set$('rks-low-incr',allDates[minIdx]||'—');
+    const dod=totalByDay.length>1?((totalByDay[totalByDay.length-1]/(totalByDay[0]||1)-1)*100).toFixed(1)+'%':'—';
+    set$('rk-dod',dod);
+
+    // incremental daily grouped bar
+    replaceChart('c-incr-daily',{
+      type:'bar',data:{labels:allDates,datasets:[
+        {label:'Streaming',data:allDates.map(d=>stMap[d]||0),backgroundColor:'rgba(0,245,160,.75)',borderColor:'#00f5a0',borderWidth:1,borderRadius:2},
+        {label:'Linear TV',data:allDates.map(d=>ltMap[d]||0),backgroundColor:'rgba(245,197,24,.75)',borderColor:'#f5c518',borderWidth:1,borderRadius:2}
+      ]},options:{...getCB(),interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+        scales:{x:{stacked:true,...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},
+          y:{stacked:true,...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+
+    // day-over-day change line
+    const dodVals=totalByDay.map((v,i)=>i===0?0:+(((v/(totalByDay[i-1]||1)-1)*100).toFixed(1)));
+    const dodColors=dodVals.map(v=>v>=0?'rgba(0,245,160,.8)':'rgba(255,61,110,.8)');
+    replaceChart('c-incr-dod',{
+      type:'bar',data:{labels:allDates,datasets:[{
+        label:'DoD Change %',data:dodVals,backgroundColor:dodColors,borderColor:dodColors,borderWidth:1,borderRadius:3
+      }]},options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},
+        tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.raw>0?'+':''}${c.raw}%`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:16,maxRotation:45}},
+          y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'%'}}}}});
+
+    // top incremental days
+    const sortedIncr=[...allDates.map((d,i)=>[d,totalByDay[i]])].sort((a,b)=>b[1]-a[1]).slice(0,12);
+    hbarList('incr-top-days',sortedIncr);
+
+    // ── Incremental Reach by Device IDs ──
+    const stDU=gbyDateU(d,'Streaming'),ltDU=gbyDateU(d,'Linear TV');
+    const stUMap=Object.fromEntries(stDU),ltUMap=Object.fromEntries(ltDU);
+    replaceChart('c-incr-devices',{
+      type:'bar',data:{labels:allDates,datasets:[
+        {label:'Streaming Devices',data:allDates.map(dt=>stUMap[dt]||0),backgroundColor:'rgba(0,245,160,.7)',borderColor:'#00f5a0',borderWidth:1,borderRadius:3},
+        {label:'Linear TV Devices',data:allDates.map(dt=>ltUMap[dt]||0),backgroundColor:'rgba(245,197,24,.7)',borderColor:'#f5c518',borderWidth:1,borderRadius:3}
+      ]},options:{...getCB(),interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)} devices`}}},
+        scales:{x:{stacked:true,...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},
+          y:{stacked:true,...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+
+    // Cumulative device reach
+    let cStU=0,cLtU=0;const cStUArr=[],cLtUArr=[];
+    allDates.forEach(dt=>{cStU+=(stUMap[dt]||0);cLtU+=(ltUMap[dt]||0);cStUArr.push(cStU);cLtUArr.push(cLtU);});
+    replaceChart('c-incr-devs-cumul',{
+      type:'line',data:{labels:allDates,datasets:[
+        {label:'Streaming (cumul.)',data:cStUArr,borderColor:'#00f5a0',backgroundColor:'rgba(0,245,160,.07)',borderWidth:2.5,pointRadius:2,tension:.4,fill:true},
+        {label:'Linear TV (cumul.)',data:cLtUArr,borderColor:'#f5c518',backgroundColor:'rgba(245,197,24,.06)',borderWidth:2.5,pointRadius:2,tension:.4,fill:true}
+      ]},options:{...getCB(),interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)} devices`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:16,maxRotation:45}},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+
+    const topDevDays=[...allDates.map((dt,i)=>[dt,(stUMap[dt]||0)+(ltUMap[dt]||0)])].sort((a,b)=>b[1]-a[1]).slice(0,12);
+    hbarList('incr-devs-top-days',topDevDays);
+  }
+}
+
+// ─── LINEAR TV ────────────────────────────────────────────────────────────────
+function renderLinear(d,raw){
+  const lin=d.filter(r=>r.content_type==='Linear TV');
+  const activeSub=document.querySelector('#tab-linear .sub-tab.active')?.textContent?.trim()||'Channel';
+
+  // KPIs
+  const linI=sumI(lin),linU=sumU(lin),linS=sumS(lin);
+  const nets=gby(lin,'network',1,EX);
+  set$('lin-kpis',`
+    <div class="kpi" style="--kc:var(--a4)"><div class="kpi-lbl">Linear Impressions</div><div class="kpi-val">${fmt(linI)}</div><div class="kpi-sub">in current filter</div></div>
+    <div class="kpi" style="--kc:#8338ec"><div class="kpi-lbl">Unique Devices</div><div class="kpi-val">${fmt(linU)}</div><div class="kpi-sub">approx</div></div>
+    <div class="kpi" style="--kc:var(--a2)"><div class="kpi-lbl">Avg Frequency</div><div class="kpi-val">${linU?(linI/linU).toFixed(2):'—'}</div><div class="kpi-sub">impr / device</div></div>
+    <div class="kpi" style="--kc:var(--accent)"><div class="kpi-lbl">Total Watch Time</div><div class="kpi-val">${fmtH(linS)}</div><div class="kpi-sub">${Math.round(linS/3600).toLocaleString('en-IN')} hrs</div></div>
+  `);
+
+  if(activeSub==='Channel'){
+    // Combined Impressions + Avg Frequency dual-axis horizontal bar chart
+    // FIX: Use xAxisID for horizontal bar (indexAxis:'y') charts
+    const netImpr=gby(lin,'network',14,EX);
+    const netFreq=Object.fromEntries(gbyFreq(lin,'network',14,EX));
+    const netLabels=netImpr.map(x=>x[0]);
+    const imprVals=netImpr.map(x=>x[1]);
+    const freqVals=netLabels.map(k=>+(netFreq[k]||0).toFixed(2));
+    replaceChart('c-ln-net-combo',{
+      type:'bar',
+      data:{labels:netLabels,datasets:[
+        {type:'bar',label:'Impressions',data:imprVals,backgroundColor:'rgba(56,189,248,.65)',borderColor:'#38bdf8',borderWidth:1,borderRadius:4,xAxisID:'x'},
+        {type:'scatter',label:'Avg Frequency',data:freqVals.map((v,i)=>({x:v,y:netLabels[i]})),backgroundColor:'#f5c518',borderColor:'#f5c518',pointRadius:5,pointHoverRadius:9,showLine:false,xAxisID:'x2'}
+      ]},
+      options:{...getCB(),indexAxis:'y',interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>c.datasetIndex===0?` Impr: ${fmt(c.raw)}`:`  Avg Freq: ${(c.parsed.x||0).toFixed(2)}×`}}},
+        scales:{
+          x:{position:'bottom',...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)},title:{display:true,text:'Impressions',color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          x2:{position:'top',grid:{display:false},...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'×'},title:{display:true,text:'Avg Freq ●',color:'#f5c518',font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          y:{...axOptsY(),ticks:{...axOptsY().ticks,font:{size:11,family:"'Plus Jakarta Sans',sans-serif"}}}
+        }}});
+
+    // Reach (Unique Devices) + Avg Frequency by Channel
+    const netReach=Object.fromEntries(gby(lin,'network',14,EX).map(([k])=>{
+      const rows=lin.filter(r=>r.network===k);
+      return[k,sumU(rows)];
+    }));
+    const reachLabels=Object.keys(netReach).sort((a,b)=>netReach[b]-netReach[a]).slice(0,14);
+    const reachVals=reachLabels.map(k=>netReach[k]||0);
+    const reachFreqVals=reachLabels.map(k=>+(netFreq[k]||0).toFixed(2));
+    replaceChart('c-ln-reach-combo',{
+      type:'bar',
+      data:{labels:reachLabels,datasets:[
+        {type:'bar',label:'Unique Devices (Reach)',data:reachVals,backgroundColor:'rgba(0,245,160,.6)',borderColor:'#00f5a0',borderWidth:1,borderRadius:4,xAxisID:'x'},
+        {type:'scatter',label:'Avg Frequency',data:reachFreqVals.map((v,i)=>({x:v,y:reachLabels[i]})),backgroundColor:'#fb923c',borderColor:'#fb923c',pointRadius:5,pointHoverRadius:9,showLine:false,xAxisID:'x2'}
+      ]},
+      options:{...getCB(),indexAxis:'y',interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>c.datasetIndex===0?` Reach: ${fmt(c.raw)} devices`:`  Avg Freq: ${c.raw}×`}}},
+        scales:{
+          x:{position:'bottom',...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)},title:{display:true,text:'Unique Devices',color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          x2:{position:'top',grid:{display:false},...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'×'},title:{display:true,text:'Avg Freq',color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          y:{...axOptsY(),ticks:{...axOptsY().ticks,font:{size:11,family:"'Plus Jakarta Sans',sans-serif"}}}
+        }}});
+
+    donut('c-ln-live',gby(lin,'is_live',5,new Set([...EX,'N/A'])));
+    hbar('c-ln-watch',gbyW(lin,'network',12,EX).map(([k,v])=>[k,Math.round(v/3600)]));
+  } else if(activeSub==='Shows'){
+    hbarList('ln-shows-impr',gby(lin,'title',15,EX));
+    hbarList('ln-shows-watch',gbyW(lin,'title',15,EX).map(([k,v])=>[k,Math.round(v/3600)]));
+    hbarList('ln-genres',gby(lin,'genre',12,EX));
+    donut('c-ln-genre',gby(lin,'genre',10,EX));
+  } else if(activeSub==='Geo'){
+    hbarList('ln-states',gby(lin,'subdivision',12,EX));
+    hbarList('ln-cities',gby(lin,'city',12,EX));
+    donut('c-ln-state',gby(lin,'subdivision',10,EX));
+    donut('c-ln-city',gby(lin,'city',10,EX));
+  } else if(activeSub==='Time'){
+    // hour chart from raw * ratio (best effort without per-row hour in pivot)
+    replaceChart('c-ln-hour',hourBarCfg(hourDataFor('Linear TV')));
+    // prime time (18-23) vs off-peak
+    const hourData=raw.hour_of_day||[];
+    const ptI=hourData.filter(h=>parseInt(h.hour)>=18&&parseInt(h.hour)<=23).reduce((s,h)=>s+h.impressions,0);
+    const totalH=hourData.reduce((s,h)=>s+h.impressions,0);
+    const offI=totalH-ptI;
+    donut('c-ln-primetime',[['Prime Time (18-23)',Math.round(ptI*sumI(lin)/(totalH||1))],['Off-Peak',Math.round(offI*sumI(lin)/(totalH||1))]]);
+    // avg freq by time slot
+    const slots=[{l:'Morning (6-9)',r:[6,9]},{l:'Afternoon (10-14)',r:[10,14]},{l:'Evening (15-17)',r:[15,17]},{l:'Prime (18-23)',r:[18,23]},{l:'Night (0-5)',r:[0,5]}];
+    hbarList('ln-timeslot-freq',slots.map(sl=>[sl.l,+(linU?(linI/linU):0).toFixed(2)]));
+  } else if(activeSub==='Day'){
+    const linDates=gbyDate(lin);
+    const linDateMap=Object.fromEntries(linDates);
+    const allD=linDates.map(x=>x[0]).sort();
+    replaceChart('c-ln-daily',{
+      type:'bar',data:{labels:allD,datasets:[{label:'Linear TV',data:allD.map(d=>linDateMap[d]||0),backgroundColor:'rgba(245,197,24,.7)',borderColor:'#f5c518',borderWidth:1,borderRadius:3}]},
+      options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)} impressions`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+    replaceChart('c-ln-dow',dowBarCfg(gbyDow(lin),'#f5c518'));
+    hbarList('ln-top-days',linDates.sort((a,b)=>b[1]-a[1]).slice(0,12));
+  }
+}
+
+// ─── STREAMING ─────────────────────────────────────────────────────────────────
+function renderStreaming(d,raw){
+  const st=d.filter(r=>r.content_type==='Streaming');
+  const activeSub=document.querySelector('#tab-streaming .sub-tab.active')?.textContent?.trim()||'App';
+
+  // KPIs
+  const stI=sumI(st),stU=sumU(st),stS=sumS(st);
+  set$('st-kpis',`
+    <div class="kpi" style="--kc:var(--accent)"><div class="kpi-lbl">Streaming Impressions</div><div class="kpi-val">${fmt(stI)}</div><div class="kpi-sub">in current filter</div></div>
+    <div class="kpi" style="--kc:#8338ec"><div class="kpi-lbl">Unique Devices</div><div class="kpi-val">${fmt(stU)}</div><div class="kpi-sub">approx</div></div>
+    <div class="kpi" style="--kc:var(--a2)"><div class="kpi-lbl">Avg Frequency</div><div class="kpi-val">${stU?(stI/stU).toFixed(2):'—'}</div><div class="kpi-sub">impr / device</div></div>
+    <div class="kpi" style="--kc:var(--a4)"><div class="kpi-lbl">Total Watch Time</div><div class="kpi-val">${fmtH(stS)}</div><div class="kpi-sub">${Math.round(stS/3600).toLocaleString('en-IN')} hrs</div></div>
+  `);
+
+  if(activeSub==='App'){
+    // Combined Impressions + Avg Frequency dual-axis horizontal bar chart
+    // FIX: Use xAxisID for horizontal bar (indexAxis:'y') charts
+    const appImpr=gby(st,'application',14,EXA);
+    const appFreq=Object.fromEntries(gbyFreq(st,'application',14,EXA));
+    const appLabels=appImpr.map(x=>x[0]);
+    const imprVals=appImpr.map(x=>x[1]);
+    const freqVals=appLabels.map(k=>+(appFreq[k]||0).toFixed(2));
+    replaceChart('c-st-app-combo',{
+      type:'bar',
+      data:{labels:appLabels,datasets:[
+        {type:'bar',label:'Impressions',data:imprVals,backgroundColor:'rgba(0,245,160,.65)',borderColor:'#00f5a0',borderWidth:1,borderRadius:4,xAxisID:'x'},
+        {type:'scatter',label:'Avg Frequency',data:freqVals.map((v,i)=>({x:v,y:appLabels[i]})),backgroundColor:'#f5c518',borderColor:'#f5c518',pointRadius:5,pointHoverRadius:9,showLine:false,xAxisID:'x2'}
+      ]},
+      options:{...getCB(),indexAxis:'y',interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>c.datasetIndex===0?` Impr: ${fmt(c.raw)}`:`  Avg Freq: ${(c.parsed.x||0).toFixed(2)}×`}}},
+        scales:{
+          x:{position:'bottom',...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)},title:{display:true,text:'Impressions',color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          x2:{position:'top',grid:{display:false},...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'×'},title:{display:true,text:'Avg Freq ●',color:'#f5c518',font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          y:{...axOptsY(),ticks:{...axOptsY().ticks,font:{size:11,family:"'Plus Jakarta Sans',sans-serif"}}}
+        }}});
+
+    // Reach (Unique Devices) + Avg Frequency by App
+    const appReach=Object.fromEntries(appImpr.map(([k])=>{
+      const rows=st.filter(r=>r.application===k);
+      return[k,sumU(rows)];
+    }));
+    const reachAppLabels=Object.keys(appReach).sort((a,b)=>(appReach[b]||0)-(appReach[a]||0)).slice(0,14);
+    const reachAppVals=reachAppLabels.map(k=>appReach[k]||0);
+    const reachAppFreqVals=reachAppLabels.map(k=>+(appFreq[k]||0).toFixed(2));
+    replaceChart('c-st-reach-combo',{
+      type:'bar',
+      data:{labels:reachAppLabels,datasets:[
+        {type:'bar',label:'Unique Devices (Reach)',data:reachAppVals,backgroundColor:'rgba(168,85,247,.6)',borderColor:'#a855f7',borderWidth:1,borderRadius:4,xAxisID:'x'},
+        {type:'scatter',label:'Avg Frequency',data:reachAppFreqVals.map((v,i)=>({x:v,y:reachAppLabels[i]})),backgroundColor:'#fb923c',borderColor:'#fb923c',pointRadius:5,pointHoverRadius:9,showLine:false,xAxisID:'x2'}
+      ]},
+      options:{...getCB(),indexAxis:'y',interaction:{mode:'index',intersect:false},
+        plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>c.datasetIndex===0?` Reach: ${fmt(c.raw)} devices`:`  Avg Freq: ${c.raw}×`}}},
+        scales:{
+          x:{position:'bottom',...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)},title:{display:true,text:'Unique Devices',color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          x2:{position:'top',grid:{display:false},...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'×'},title:{display:true,text:'Avg Freq',color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}}},
+          y:{...axOptsY(),ticks:{...axOptsY().ticks,font:{size:11,family:"'Plus Jakarta Sans',sans-serif"}}}
+        }}});
+
+    // Incremental Reach by Device IDs — daily streaming devices
+    const stDU=gbyDateU(st);
+    const stDateMap=Object.fromEntries(stDU);
+    const stAllDates=stDU.map(x=>x[0]);
+    replaceChart('c-st-incr-devices',{
+      type:'bar',data:{labels:stAllDates,datasets:[{
+        label:'Streaming Devices per Day',
+        data:stAllDates.map(dt=>stDateMap[dt]||0),
+        backgroundColor:stAllDates.map((_,i)=>{
+          const palette=['rgba(0,245,160,.7)','rgba(56,189,248,.7)','rgba(168,85,247,.7)','rgba(245,197,24,.7)','rgba(251,146,60,.7)'];
+          return palette[i%palette.length];
+        }),
+        borderColor:stAllDates.map((_,i)=>{
+          const p=['#00f5a0','#38bdf8','#a855f7','#f5c518','#fb923c'];return p[i%p.length];
+        }),
+        borderWidth:1,borderRadius:3
+      }]},
+      options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},
+        tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)} devices`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},
+          y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+
+    hbar('c-st-watch',gbyW(st,'application',12,EXA).map(([k,v])=>[k,Math.round(v/3600)]));
+    // titles
+    const titlesNote=document.getElementById('st-titles-note');
+    const pivTitles=gby(st,'title',15,EX);
+    if(pivTitles.length){titlesNote.style.display='none';hbarList('st-titles',pivTitles);}
+    else{
+      const rawTitles=(raw.top_titles||[]).map(x=>[x.name,x.impressions]);
+      titlesNote.style.display=rawTitles.length?'block':'none';
+      titlesNote.textContent='⚠ Title not in pivot for this filter — showing global top titles.';
+      hbarList('st-titles',rawTitles);
+    }
+  } else if(activeSub==='Content'){
+    hbarList('st-cnt-titles',gby(st,'title',15,EX));
+    hbarList('st-cnt-watch',gbyW(st,'title',15,EX).map(([k,v])=>[k,Math.round(v/3600)]));
+    hbarList('st-cnt-genres',gby(st,'genre',12,EX));
+    donut('c-st-genre',gby(st,'genre',10,EX));
+  } else if(activeSub==='Geo'){
+    hbarList('st-states',gby(st,'subdivision',12,EX));
+    hbarList('st-cities',gby(st,'city',12,EX));
+    donut('c-st-state',gby(st,'subdivision',10,EX));
+    donut('c-st-os',gby(st,'source_device_os',8,EX));
+  } else if(activeSub==='Time'){
+    replaceChart('c-st-hour',hourBarCfg(hourDataFor('Streaming')));
+    const hourData=raw.hour_of_day||[];
+    const ptI=hourData.filter(h=>parseInt(h.hour)>=18&&parseInt(h.hour)<=23).reduce((s,h)=>s+h.impressions,0);
+    const totalH=hourData.reduce((s,h)=>s+h.impressions,0);
+    const offI=totalH-ptI;
+    donut('c-st-primetime',[['Prime Time (18-23)',Math.round(ptI*stI/(totalH||1))],['Off-Peak',Math.round(offI*stI/(totalH||1))]]);
+    const slots=[{l:'Morning (6-9)',r:[6,9]},{l:'Afternoon (10-14)',r:[10,14]},{l:'Evening (15-17)',r:[15,17]},{l:'Prime (18-23)',r:[18,23]},{l:'Night (0-5)',r:[0,5]}];
+    hbarList('st-timeslot-freq',slots.map(sl=>[sl.l,+(stU?(stI/stU):0).toFixed(2)]));
+  } else if(activeSub==='Day'){
+    const stDates=gbyDate(st);
+    const stDateMap=Object.fromEntries(stDates);
+    const allD=stDates.map(x=>x[0]).sort();
+    replaceChart('c-st-daily',{
+      type:'bar',data:{labels:allD,datasets:[{label:'Streaming',data:allD.map(d=>stDateMap[d]||0),backgroundColor:'rgba(0,245,160,.7)',borderColor:'#00f5a0',borderWidth:1,borderRadius:3}]},
+      options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)} impressions`}}},
+        scales:{x:{...axOpts(),ticks:{...axOpts().ticks,maxTicksLimit:20,maxRotation:45}},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+    replaceChart('c-st-dow',dowBarCfg(gbyDow(st),'#00f5a0'));
+    hbarList('st-top-days',stDates.sort((a,b)=>b[1]-a[1]).slice(0,12));
+  }
+}
+
+// ─── AUDIENCE ─────────────────────────────────────────────────────────────────
+function selectFreqType(ft,btn){
+  S.freqType=ft;
+  document.querySelectorAll('[data-ft]').forEach(b=>{b.classList.remove('inc');});
+  btn.classList.add('inc');
+  if(S.raw)renderAudience(S.f,S.raw);
+}
+
+function renderAudience(d,raw){
+  const ft=S.freqType||'all';
+  // Pick correct freq distribution and quintile data
+  let freqDist,freqQuintiles,badgeLabel;
+  if(ft==='all'||!ft){
+    freqDist=raw.freq_distribution||{};
+    freqQuintiles=raw.freq_quintiles||[];
+    badgeLabel='GLOBAL';
+  } else {
+    freqDist=(raw.freq_distribution_by_type||{})[ft]||{};
+    freqQuintiles=((raw.freq_quintiles_by_type||{})[ft])||[];
+    badgeLabel=ft.toUpperCase();
+  }
+  set$('freq-dist-badge',badgeLabel);
+  set$('freq-pct-badge',badgeLabel);
+  set$('quintile-badge',ft==='all'?'ALL TYPES':ft.toUpperCase());
+
+  renderFreqDist(freqDist);
+  renderFreqPct(freqDist);
+
+  // freq bar chart (bucket distribution)
+  const fbLabels=['1','2-3','4-6','7-10','11+'];
+  const fbVals=fbLabels.map(k=>freqDist[k]||0);
+  replaceChart('c-freq-bar',{
+    type:'bar',data:{labels:['1×','2–3×','4–6×','7–10×','11+×'],datasets:[{data:fbVals,backgroundColor:CC.map(c=>c+'bb'),borderColor:CC,borderWidth:1,borderRadius:4}]},
+    options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)} devices`}}},
+      scales:{x:{...axOptsY()},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}});
+
+  // avg freq by content type
+  const ctList=[...new Set(d.map(r=>r.content_type).filter(ct=>ct&&!EX.has(ct)))];
+  const ctFreqs=ctList.map(ct=>{const rows=d.filter(r=>r.content_type===ct);const i=sumI(rows),u=sumU(rows);return[ct,u?(i/u):0];});
+  donut('c-freq-ct',ctFreqs.map(([k,v])=>[k,+v.toFixed(2)]));
+
+  // ── Quintile bar chart ──
+  if(freqQuintiles&&freqQuintiles.length){
+    const qLabels=freqQuintiles.map(q=>q.label);
+    const qVals=freqQuintiles.map(q=>q.avg_freq);
+    const qColors=['#06d6a0','#ffd166','#fb8500','#ef476f','#8338ec'];
+    replaceChart('c-freq-quintile',{
+      type:'bar',
+      data:{labels:qLabels,datasets:[{
+        label:'Avg Frequency',data:qVals,
+        backgroundColor:qColors.map(c=>c+'cc'),borderColor:qColors,borderWidth:1.5,borderRadius:6,borderSkipped:false
+      }]},
+      options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},
+        tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` Avg Freq: ${c.raw}×`,title:c=>c[0].label}}},
+        scales:{
+          x:{...axOptsY(),ticks:{...axOptsY().ticks,font:{size:12,family:"'Plus Jakarta Sans',sans-serif"}}},
+          y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'×'},title:{display:true,text:'Avg Frequency (×)',color:axisColor(),font:{size:11}}}
+        }}});
+  } else {
+    // Fallback: derive quintile-style from freq_distribution buckets
+    const buckets=[{k:'11+',mid:15},{k:'7-10',mid:8.5},{k:'4-6',mid:5},{k:'2-3',mid:2.5},{k:'1',mid:1}];
+    const qLabels=['Top 20%','Second 20%','Third 20%','Fourth 20%','Bottom 20%'];
+    const qVals=buckets.map(b=>+(freqDist[b.k]?b.mid:0));
+    const qColors=['#06d6a0','#ffd166','#fb8500','#ef476f','#8338ec'];
+    replaceChart('c-freq-quintile',{
+      type:'bar',data:{labels:qLabels,datasets:[{label:'Avg Frequency (approx)',data:qVals,backgroundColor:qColors.map(c=>c+'cc'),borderColor:qColors,borderWidth:1.5,borderRadius:6,borderSkipped:false}]},
+      options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},
+        tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` Avg Freq: ${c.raw}×`}}},
+        scales:{x:{...axOptsY()},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>v+'×'}}}}});
+  }
+
+  // device / input / OS
+  donut('c-input',gby(d,'tv_input_type',8,EX));
+  donut('c-dev2',gby(d,'device_category',6,EX));
+  donut('c-os',gby(d.filter(r=>r.content_type==='Streaming'),'source_device_os',8,EX));
+  // geo
+  hbarList('all-states',gby(d,'subdivision',12,EX));
+  hbarList('all-cities',gby(d,'city',12,EX));
+}
+
+function renderFreqDist(freq){
+  const buckets=[{k:'1',l:'1×'},{k:'2-3',l:'2–3×'},{k:'4-6',l:'4–6×'},{k:'7-10',l:'7–10×'},{k:'11+',l:'11+×'}];
+  const vals=buckets.map(b=>freq[b.k]||0),mx=Math.max(...vals,1);
+  set$('freq-list',buckets.map((b,i)=>`
+    <div class="freq-item">
+      <div class="freq-lbl">${b.l}</div>
+      <div class="freq-track"><div class="freq-fill" style="width:${Math.max(2,(vals[i]/mx)*100).toFixed(1)}%;background:${CC[i]}">
+        ${vals[i]>0?fmt(vals[i]):''}
+      </div></div>
+    </div>`).join(''));
+}
+
+function renderFreqPct(freq){
+  const buckets=[{k:'1',l:'1',mid:1},{k:'2-3',l:'2–3',mid:2.5},{k:'4-6',l:'4–6',mid:5},{k:'7-10',l:'7–10',mid:8.5},{k:'11+',l:'11+',mid:15}];
+  const vals=buckets.map(b=>freq[b.k]||0);
+  const totalDevs=vals.reduce((s,v)=>s+v,0)||1;
+  const totalImprEst=vals.reduce((s,v,i)=>s+v*buckets[i].mid,0)||1;
+  let cumDevs=0,cumImpr=0;
+  const rows=buckets.map((b,i)=>{
+    cumDevs+=vals[i];cumImpr+=vals[i]*b.mid;
+    return{
+      freq:b.l,
+      devices:vals[i],
+      pctDevs:((vals[i]/totalDevs)*100).toFixed(1),
+      cumPctDevs:((cumDevs/totalDevs)*100).toFixed(1),
+      estImpr:Math.round(vals[i]*b.mid),
+      pctImpr:((vals[i]*b.mid/totalImprEst)*100).toFixed(1),
+      cumPctImpr:((cumImpr/totalImprEst)*100).toFixed(1),
+    };
+  });
+  set$('pct-table-wrap',`
+    <table class="pct-table">
+      <thead><tr><th>Freq</th><th>Devices</th><th>% Devs</th><th>Cum %</th><th>Est Impr</th><th>% Impr</th><th>Cum %</th></tr></thead>
+      <tbody>${rows.map(r=>`
+        <tr>
+          <td class="pct-hl">${r.freq}×</td>
+          <td>${fmt(r.devices)}</td>
+          <td>${r.pctDevs}%</td>
+          <td style="color:var(--a2)">${r.cumPctDevs}%</td>
+          <td>${fmt(r.estImpr)}</td>
+          <td>${r.pctImpr}%</td>
+          <td style="color:var(--a4)">${r.cumPctImpr}%</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:8px;">Est Impr = devices × mid-point of freq bucket. Cumulative % reads top-down.</div>
+  `);
+}
+
+// ─── OVERLAP & DEDUP ─────────────────────────────────────────────────────────
+function renderOverlap(d, raw) {
+  const activeSub = document.querySelector('#tab-overlap .sub-tab.active')?.textContent?.trim() || 'Summary';
+
+  // ── Core overlap numbers from smba_id set-intersection (Python or in-browser) ──
+  const oa  = raw.overlap_analysis || {};
+  const dl  = raw.daily_overlap    || [];   // per-day true smba_id data (Python only)
+  const hasTrue = !!(oa.unduplicated_total > 0);
+
+  const stTotal = oa.streaming_devices      || 0;  // all unique streaming devices
+  const ltTotal = oa.linear_devices         || 0;  // all unique linear devices
+  const stOnly  = oa.streaming_only_devices || 0;  // streaming-only (not in linear)
+  const ltOnly  = oa.linear_only_devices    || 0;  // linear-only = INCREMENTAL REACH
+  const both    = oa.both_devices           || 0;  // cross-platform (in both)
+  const undup   = oa.unduplicated_total     || 0;  // true deduplicated combined reach
+
+  // Impression totals from filtered pivot data
+  const st  = d.filter(r => r.content_type === 'Streaming');
+  const lt  = d.filter(r => r.content_type === 'Linear TV');
+  const stI = sumI(st), ltI = sumI(lt), totI = stI + ltI;
+
+  // ── Segment card renderer ─────────────────────────────────────────────────
+  function segCard(val, pct, color, label2) {
+    return `
+      <div style="padding:6px 0 10px;text-align:center;">
+        <div style="font-size:32px;font-weight:700;font-family:var(--mono);color:${color};">${fmt(val)}</div>
+        <div style="margin:6px 16px 0;height:6px;background:rgba(128,128,128,.12);border-radius:3px;overflow:hidden;">
+          <div style="width:${Math.min(100,pct).toFixed(1)}%;height:100%;background:${color};border-radius:3px;transition:width .9s;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:5px;">${pct.toFixed(1)}% of unduplicated reach &nbsp;·&nbsp; ${label2}</div>
+      </div>`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (activeSub === 'Summary') {
+
+    const incrLift = stTotal > 0 ? ((undup / stTotal - 1) * 100).toFixed(1) : '0.0';
+    const dupRate  = undup > 0   ? (both  / undup * 100).toFixed(1) : '0.0';
+    const stPct    = undup > 0   ? (stOnly / undup * 100) : 0;
+    const ltPct    = undup > 0   ? (ltOnly / undup * 100) : 0;
+    const bothPct  = undup > 0   ? (both   / undup * 100) : 0;
+
+    // KPI strip
+    set$('ov-kpis', `
+      <div class="kpi" style="--kc:var(--accent)">
+        <div class="kpi-lbl">Total Unduplicated Reach</div>
+        <div class="kpi-val">${fmt(undup)}</div>
+        <div class="kpi-sub">unique devices across both platforms</div>
+      </div>
+      <div class="kpi" style="--kc:var(--a3)">
+        <div class="kpi-lbl">Cross-Platform Audience</div>
+        <div class="kpi-val">${fmt(both)}</div>
+        <div class="kpi-sub">${dupRate}% — watched Streaming &amp; Linear</div>
+      </div>
+      <div class="kpi" style="--kc:var(--a2)">
+        <div class="kpi-lbl">Linear Incremental Reach</div>
+        <div class="kpi-val">${fmt(ltOnly)}</div>
+        <div class="kpi-sub">net-new devices only reachable via Linear</div>
+      </div>
+      <div class="kpi" style="--kc:var(--a4)">
+        <div class="kpi-lbl">Incremental Lift</div>
+        <div class="kpi-val">${incrLift}%</div>
+        <div class="kpi-sub">reach gain vs streaming-only buy</div>
+      </div>
+    `);
+
+    // 3 segment cards
+    set$('ov-card-st',   segCard(stOnly, stPct,   '#00f5a0', `${fmt(stTotal)} total streaming devices`));
+    set$('ov-card-both', segCard(both,   bothPct, '#ff3d6e', `${dupRate}% duplication rate`));
+    set$('ov-card-lt',   segCard(ltOnly, ltPct,   '#f5c518', `${fmt(ltTotal)} total linear devices`));
+
+    // Audience segment horizontal bar (Venn segments side-by-side)
+    replaceChart('c-ov-segments', {
+      type: 'bar',
+      data: {
+        labels: ['Audience Segments'],
+        datasets: [
+          { label: 'Streaming Only',       data: [stOnly], backgroundColor: 'rgba(0,245,160,.85)',  borderColor: '#00f5a0', borderWidth: 1.5 },
+          { label: 'Cross-Platform (Both)', data: [both],   backgroundColor: 'rgba(255,61,110,.85)', borderColor: '#ff3d6e', borderWidth: 1.5 },
+          { label: 'Linear Only (Incremental)', data: [ltOnly], backgroundColor: 'rgba(245,197,24,.85)', borderColor: '#f5c518', borderWidth: 1.5 },
+        ]
+      },
+      options: {
+        ...getCB(), indexAxis: 'y',
+        scales: {
+          x: { stacked: true, ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) } },
+          y: { stacked: true, ...axOptsY() }
+        },
+        plugins: {
+          ...getCB().plugins,
+          tooltip: { ...getCB().plugins.tooltip, callbacks: {
+            label: c => {
+              const pct = undup ? (c.raw / undup * 100).toFixed(1) : '0';
+              return ` ${c.dataset.label}: ${fmt(c.raw)} (${pct}%)`;
+            }
+          }}
+        }
+      }
+    });
+
+    // Impression donut
+    replaceChart('c-ov-impr-split', {
+      type: 'doughnut',
+      data: {
+        labels: ['Streaming', 'Linear TV'],
+        datasets: [{ data: [stI, ltI],
+          backgroundColor: ['rgba(0,245,160,.75)', 'rgba(245,197,24,.75)'],
+          borderColor: ['#00f5a0', '#f5c518'], borderWidth: 2, hoverOffset: 8 }]
+      },
+      options: { ...getCB(), cutout: '60%', plugins: { ...getCB().plugins,
+        tooltip: { ...getCB().plugins.tooltip, callbacks: {
+          label: c => ` ${c.label}: ${fmt(c.raw)} (${totI ? ((c.raw / totI) * 100).toFixed(1) : 0}%)`
+        }}
+      }}
+    });
+
+    // Summary table
+    set$('ov-overlap-table', `
+      <table class="pct-table">
+        <thead>
+          <tr><th>Metric</th><th style="color:var(--accent)">Streaming</th><th style="color:var(--a2)">Linear TV</th><th>Combined</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="pct-hl">Total Devices (incl. overlap)</td>
+              <td>${fmt(stTotal)}</td><td>${fmt(ltTotal)}</td>
+              <td>${fmt(stTotal + ltTotal)} <span style="color:var(--text3)">(gross)</span></td></tr>
+          <tr><td class="pct-hl" style="color:var(--accent)">Platform-Only Devices</td>
+              <td>${fmt(stOnly)}</td><td>${fmt(ltOnly)}</td>
+              <td style="color:var(--accent);font-weight:700;">${fmt(undup)} unduplicated</td></tr>
+          <tr><td class="pct-hl" style="color:var(--a3)">Cross-Platform (Both)</td>
+              <td colspan="2" style="text-align:center">${fmt(both)} devices</td>
+              <td>${bothPct.toFixed(1)}% of reach</td></tr>
+          <tr><td class="pct-hl">Impressions</td>
+              <td>${fmt(stI)}</td><td>${fmt(ltI)}</td><td>${fmt(totI)}</td></tr>
+          <tr><td class="pct-hl">Avg Frequency</td>
+              <td>${stTotal ? (stI / stTotal).toFixed(2) : '—'}×</td>
+              <td>${ltTotal ? (ltI / ltTotal).toFixed(2) : '—'}×</td>
+              <td>${undup   ? (totI / undup).toFixed(2) : '—'}×</td></tr>
+          <tr style="background:rgba(245,197,24,.05)">
+              <td class="pct-hl" style="color:var(--a2)">Linear Incremental Reach</td>
+              <td>—</td><td style="color:var(--a2);font-weight:700;">${fmt(ltOnly)}</td>
+              <td style="color:var(--a2)">${ltPct.toFixed(1)}% of unduplicated — not reachable via Streaming alone</td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:8px;">
+        ${hasTrue
+          ? '✅ True smba_id set-intersection — global across all dates. Re-run prepare_dashboard_data.py to refresh.'
+          : '✅ True smba_id set-intersection — computed during Excel load.'}
+      </div>
+    `);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  } else if (activeSub === 'By Day') {
+
+    if (!dl.length) {
+      // No daily_overlap from Python — fall back to impression-based day chart only
+      const stD = gbyDate(d, 'Streaming'), ltD = gbyDate(d, 'Linear TV');
+      const allDates = [...new Set([...stD.map(x => x[0]), ...ltD.map(x => x[0])])].sort();
+      const stMap = Object.fromEntries(stD), ltMap = Object.fromEntries(ltD);
+
+      ['c-ov-daily-seg','c-ov-daily-both','c-ov-daily-undup'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.parentElement.innerHTML = '<div class="no-data" style="padding:16px;">Per-day smba_id overlap requires JSON from <code>prepare_dashboard_data.py</code>. Showing impression data only.</div>';
+      });
+
+      replaceChart('c-ov-daily-impr', {
+        type: 'bar',
+        data: { labels: allDates, datasets: [
+          { label: 'Streaming',  data: allDates.map(dt => stMap[dt] || 0), backgroundColor: 'rgba(0,245,160,.7)',  borderColor: '#00f5a0', borderWidth: 1, borderRadius: 2 },
+          { label: 'Linear TV',  data: allDates.map(dt => ltMap[dt] || 0), backgroundColor: 'rgba(245,197,24,.7)', borderColor: '#f5c518', borderWidth: 1, borderRadius: 2 },
+        ]},
+        options: { ...getCB(), interaction: { mode: 'index', intersect: false },
+          plugins: { ...getCB().plugins, tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.raw)}` }}},
+          scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 20, maxRotation: 45 }}, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+      });
+      return;
+    }
+
+    const dates   = dl.map(r => r.date);
+    const stOnlyD = dl.map(r => r.streaming_only);
+    const bothD   = dl.map(r => r.both);
+    const ltOnlyD = dl.map(r => r.linear_only);
+    const undupD  = dl.map(r => r.unduplicated);
+
+    // Stacked segment chart — the hero chart
+    replaceChart('c-ov-daily-seg', {
+      type: 'bar',
+      data: { labels: dates, datasets: [
+        { label: 'Streaming Only',            data: stOnlyD, backgroundColor: 'rgba(0,245,160,.8)',  borderColor: '#00f5a0', borderWidth: 1, borderRadius: 2 },
+        { label: 'Cross-Platform (Both)',      data: bothD,   backgroundColor: 'rgba(255,61,110,.8)', borderColor: '#ff3d6e', borderWidth: 1 },
+        { label: 'Linear Only (Incremental)', data: ltOnlyD, backgroundColor: 'rgba(245,197,24,.8)', borderColor: '#f5c518', borderWidth: 1, borderRadius: 2 },
+      ]},
+      options: {
+        ...getCB(), interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { stacked: true, ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 16, maxRotation: 45 }},
+          y: { stacked: true, ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}
+        },
+        plugins: { ...getCB().plugins, tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.raw)}` }}}
+      }
+    });
+
+    // Daily cross-platform audience
+    replaceChart('c-ov-daily-both', {
+      type: 'bar',
+      data: { labels: dates, datasets: [{ label: 'Cross-Platform Devices', data: bothD,
+        backgroundColor: 'rgba(255,61,110,.75)', borderColor: '#ff3d6e', borderWidth: 1, borderRadius: 3 }]},
+      options: { ...getCB(),
+        plugins: { ...getCB().plugins, legend: { display: false },
+          tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${fmt(c.raw)} devices saw both platforms` }}},
+        scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 16, maxRotation: 45 }}, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+    });
+
+    // Daily unduplicated reach
+    replaceChart('c-ov-daily-undup', {
+      type: 'bar',
+      data: { labels: dates, datasets: [{ label: 'Unduplicated Reach', data: undupD,
+        backgroundColor: 'rgba(168,85,247,.75)', borderColor: '#a855f7', borderWidth: 1, borderRadius: 3 }]},
+      options: { ...getCB(),
+        plugins: { ...getCB().plugins, legend: { display: false },
+          tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${fmt(c.raw)} unique devices` }}},
+        scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 16, maxRotation: 45 }}, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+    });
+
+    // Daily impressions (from pivot data)
+    const stD = gbyDate(d, 'Streaming'), ltD = gbyDate(d, 'Linear TV');
+    const allDates = [...new Set([...stD.map(x => x[0]), ...ltD.map(x => x[0])])].sort();
+    const stMap = Object.fromEntries(stD), ltMap = Object.fromEntries(ltD);
+    replaceChart('c-ov-daily-impr', {
+      type: 'bar',
+      data: { labels: allDates, datasets: [
+        { label: 'Streaming',  data: allDates.map(dt => stMap[dt] || 0), backgroundColor: 'rgba(0,245,160,.7)',  borderColor: '#00f5a0', borderWidth: 1, borderRadius: 2 },
+        { label: 'Linear TV',  data: allDates.map(dt => ltMap[dt] || 0), backgroundColor: 'rgba(245,197,24,.7)', borderColor: '#f5c518', borderWidth: 1, borderRadius: 2 },
+      ]},
+      options: { ...getCB(), interaction: { mode: 'index', intersect: false },
+        plugins: { ...getCB().plugins, tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.raw)}` }}},
+        scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 20, maxRotation: 45 }}, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+    });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  } else if (activeSub === 'Incremental Reach') {
+
+    const incrLift = stTotal > 0 ? ((undup / stTotal - 1) * 100).toFixed(1) : '0.0';
+    const ltOnlyPct = undup > 0  ? (ltOnly / undup * 100).toFixed(1) : '0.0';
+
+    set$('ov-incr-kpis', `
+      <div class="kpi" style="--kc:var(--accent)">
+        <div class="kpi-lbl">Streaming Reach</div>
+        <div class="kpi-val">${fmt(stTotal)}</div>
+        <div class="kpi-sub">total unique streaming devices</div>
+      </div>
+      <div class="kpi" style="--kc:var(--a2)">
+        <div class="kpi-lbl">Linear Incremental</div>
+        <div class="kpi-val">${fmt(ltOnly)}</div>
+        <div class="kpi-sub">net-new devices only reachable via Linear</div>
+      </div>
+      <div class="kpi" style="--kc:var(--a5)">
+        <div class="kpi-lbl">Total Unduplicated</div>
+        <div class="kpi-val">${fmt(undup)}</div>
+        <div class="kpi-sub">streaming + linear combined</div>
+      </div>
+      <div class="kpi" style="--kc:var(--a4)">
+        <div class="kpi-lbl">Incremental Lift</div>
+        <div class="kpi-val">${incrLift}%</div>
+        <div class="kpi-sub">reach gain vs streaming-only buy</div>
+      </div>
+    `);
+
+    if (dl.length) {
+      // True daily data from Python
+      const dates   = dl.map(r => r.date);
+      const stTotD  = dl.map(r => r.streaming_total);
+      const ltTotD  = dl.map(r => r.linear_total);
+      const ltOnlyD = dl.map(r => r.linear_only);
+      const undupD  = dl.map(r => r.unduplicated);
+      const xPctD   = dl.map(r => r.linear_total > 0 ? +(r.both / r.linear_total * 100).toFixed(1) : 0);
+
+      replaceChart('c-ov-incr-reach', {
+        type: 'line',
+        data: { labels: dates, datasets: [
+          { label: 'Streaming Devices',  data: stTotD,  borderColor: '#00f5a0', backgroundColor: 'rgba(0,245,160,.07)',  borderWidth: 2.5, pointRadius: 2, tension: .4, fill: true },
+          { label: 'Linear TV Devices',  data: ltTotD,  borderColor: '#f5c518', backgroundColor: 'rgba(245,197,24,.06)', borderWidth: 2.5, pointRadius: 2, tension: .4, fill: true },
+          { label: 'Unduplicated Combined', data: undupD, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,.06)', borderWidth: 3,   pointRadius: 3, tension: .4, fill: false },
+        ]},
+        options: { ...getCB(), interaction: { mode: 'index', intersect: false },
+          plugins: { ...getCB().plugins, tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.raw)} devices` }}},
+          scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 16, maxRotation: 45 }}, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+      });
+
+      replaceChart('c-ov-incr-lt-only', {
+        type: 'bar',
+        data: { labels: dates, datasets: [{ label: 'Linear-Only Incremental Devices', data: ltOnlyD,
+          backgroundColor: 'rgba(245,197,24,.8)', borderColor: '#f5c518', borderWidth: 1, borderRadius: 3 }]},
+        options: { ...getCB(),
+          plugins: { ...getCB().plugins, legend: { display: false },
+            tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${fmt(c.raw)} net-new devices from Linear TV` }}},
+          scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 16, maxRotation: 45 }}, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+      });
+
+      replaceChart('c-ov-incr-xpct', {
+        type: 'line',
+        data: { labels: dates, datasets: [{ label: '% of Linear audience who also watched Streaming', data: xPctD,
+          borderColor: '#ff3d6e', backgroundColor: 'rgba(255,61,110,.08)', borderWidth: 2, pointRadius: 3, tension: .4, fill: true }]},
+        options: { ...getCB(),
+          plugins: { ...getCB().plugins, legend: { display: false },
+            tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.raw}% of linear viewers also watched streaming` }}},
+          scales: { x: { ...axOpts(), ticks: { ...axOpts().ticks, maxTicksLimit: 16, maxRotation: 45 }},
+                    y: { ...axOpts(), min: 0, max: 100, ticks: { ...axOpts().ticks, callback: v => v + '%' }}}}
+      });
+
+    } else {
+      // No daily data — show global summary visually
+      const globalData = [stOnly, both, ltOnly];
+      const globalLabels = ['Streaming Only', 'Cross-Platform', 'Linear Only (Incremental)'];
+      const globalColors = ['rgba(0,245,160,.8)', 'rgba(255,61,110,.8)', 'rgba(245,197,24,.8)'];
+
+      replaceChart('c-ov-incr-reach', {
+        type: 'doughnut',
+        data: { labels: globalLabels, datasets: [{ data: globalData, backgroundColor: globalColors, borderWidth: 2, hoverOffset: 8 }]},
+        options: { ...getCB(), cutout: '55%', plugins: { ...getCB().plugins,
+          tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)} (${undup ? (c.raw / undup * 100).toFixed(1) : 0}%)` }}}}
+      });
+
+      ['c-ov-incr-lt-only','c-ov-incr-xpct'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.parentElement.innerHTML = '<div class="no-data" style="padding:16px;">Re-run <code>prepare_dashboard_data.py</code> to generate per-day incremental reach data.</div>';
+      });
+    }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  } else if (activeSub === 'By Time of Day') {
+
+    const hourData = raw.hour_of_day || [];
+    const stRatio  = totI > 0 ? stI / totI : 0.5;
+    const ltRatio  = 1 - stRatio;
+    const hLabels  = hourData.map(h => h.hour);
+
+    replaceChart('c-ov-hour-split', {
+      type: 'bar',
+      data: { labels: hLabels, datasets: [
+        { label: 'Streaming (est.)', data: hourData.map(h => Math.round(h.impressions * stRatio)), backgroundColor: 'rgba(0,245,160,.7)',  borderColor: '#00f5a0', borderWidth: 1, borderRadius: 2 },
+        { label: 'Linear TV (est.)', data: hourData.map(h => Math.round(h.impressions * ltRatio)), backgroundColor: 'rgba(245,197,24,.7)', borderColor: '#f5c518', borderWidth: 1, borderRadius: 2 },
+      ]},
+      options: { ...getCB(), interaction: { mode: 'index', intersect: false },
+        plugins: { ...getCB().plugins, tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.raw)}` }}},
+        scales: { x: { stacked: true, ...axOpts() }, y: { stacked: true, ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+    });
+
+    const stDow = gbyDow(d, 'Streaming'), ltDow = gbyDow(d, 'Linear TV');
+    replaceChart('c-ov-dow-split', {
+      type: 'bar',
+      data: { labels: DOW, datasets: [
+        { label: 'Streaming', data: stDow.map(x => x[1]), backgroundColor: 'rgba(0,245,160,.7)',  borderColor: '#00f5a0', borderWidth: 1, borderRadius: 4, borderSkipped: false },
+        { label: 'Linear TV', data: ltDow.map(x => x[1]), backgroundColor: 'rgba(245,197,24,.7)', borderColor: '#f5c518', borderWidth: 1, borderRadius: 4, borderSkipped: false },
+      ]},
+      options: { ...getCB(), interaction: { mode: 'index', intersect: false },
+        plugins: { ...getCB().plugins, tooltip: { ...getCB().plugins.tooltip, callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.raw)}` }}},
+        scales: { x: { ...axOptsY() }, y: { ...axOpts(), ticks: { ...axOpts().ticks, callback: v => fmt(v) }}}}
+    });
+
+    const slots = [
+      { l: 'Morning (6–9)',      r: [6, 9]   },
+      { l: 'Afternoon (10–14)', r: [10, 14]  },
+      { l: 'Evening (15–17)',   r: [15, 17]  },
+      { l: 'Prime (18–23)',     r: [18, 23]  },
+      { l: 'Late Night (0–5)', r: [0, 5]    },
+    ];
+    const totalH = hourData.reduce((s, h) => s + h.impressions, 0) || 1;
+    set$('ov-timeslot-table', `
+      <table class="pct-table">
+        <thead><tr><th>Time Slot</th><th>Total Impr</th><th>Streaming (est.)</th><th>Linear (est.)</th><th>% of Day</th></tr></thead>
+        <tbody>${slots.map(sl => {
+          const slI = hourData
+            .filter(h => { const hr = parseInt(h.hour); return hr >= sl.r[0] && hr <= sl.r[1]; })
+            .reduce((s, h) => s + h.impressions, 0);
+          return `<tr>
+            <td class="pct-hl">${sl.l}</td>
+            <td>${fmt(Math.round(slI))}</td>
+            <td>${fmt(Math.round(slI * stRatio))}</td>
+            <td>${fmt(Math.round(slI * ltRatio))}</td>
+            <td style="color:var(--a2)">${((slI / totalH) * 100).toFixed(1)}%</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    `);
+  }
+}
+
+
+// ─── CHART FACTORIES ─────────────────────────────────────────────────────────
+function axOpts(){return{ticks:{color:axisColor(),font:{size:10,family:"'JetBrains Mono',monospace"}},grid:{color:gridColor(),drawBorder:false}};}
+function axOptsY(){return{ticks:{color:axisColor(),font:{size:11,family:"'Plus Jakarta Sans',sans-serif"}},grid:{display:false}};}
+
+function hourBarCfg(hourData){
+  const labels=hourData.map(h=>h.hour),values=hourData.map(h=>h.impressions);
+  const mx=Math.max(...values,1);
+  const colors=values.map(v=>{const r=v/mx;return`rgba(${Math.round(0+r*56)},${Math.round(245-r*56)},${Math.round(160+r*95)},.85)`;});
+  return{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:colors,borderWidth:0,borderRadius:3}]},
+    options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{title:c=>`${c[0].label} IST`,label:c=>` ${fmt(c.raw)} impressions`}}},
+      scales:{x:{...axOpts()},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}};
+}
+
+function dowBarCfg(dowData,color){
+  const cols=color?dowData.map(()=>color):CC;
+  return{type:'bar',data:{labels:dowData.map(x=>x[0]),datasets:[{data:dowData.map(x=>x[1]),backgroundColor:(color?cols:CC).map(c=>c+'bb'),borderColor:color?cols:CC,borderWidth:1,borderRadius:4,borderSkipped:false}]},
+    options:{...getCB(),plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)} impressions`}}},
+      scales:{x:{...axOptsY()},y:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}}}}};
+}
+
+function donut(id,data){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  if(!data||!data.length){destroyC(id);canvas.parentElement.innerHTML='<div class="no-data">No data</div>';return;}
+  replaceChart(id,{type:'doughnut',data:{labels:data.map(x=>x[0]),datasets:[{data:data.map(x=>x[1]),backgroundColor:CC.slice(0,data.length),borderColor:'transparent',borderWidth:2,hoverOffset:6}]},
+    options:{...getCB(),cutout:'62%',plugins:{...getCB().plugins,tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${c.label}: ${fmt(c.raw)}`}}}}});
+}
+
+function hbar(id,data){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  if(!data||!data.length){destroyC(id);canvas.parentElement.innerHTML='<div class="no-data">No data</div>';return;}
+  const cols=data.map((_,i)=>CC[i%CC.length]);
+  replaceChart(id,{type:'bar',data:{labels:data.map(x=>x[0]),datasets:[{data:data.map(x=>x[1]),backgroundColor:cols.map(c=>c+'99'),borderColor:cols,borderWidth:1,borderRadius:4,borderSkipped:false}]},
+    options:{...getCB(),indexAxis:'y',plugins:{...getCB().plugins,legend:{display:false},tooltip:{...getCB().plugins.tooltip,callbacks:{label:c=>` ${fmt(c.raw)}`}}},
+      scales:{x:{...axOpts(),ticks:{...axOpts().ticks,callback:v=>fmt(v)}},y:{...axOptsY()}}}});
+}
+
+function replaceChart(id,cfg){
+  const canvas=document.getElementById(id);if(!canvas)return;
+  destroyC(id);
+  canvas.parentElement.innerHTML=`<canvas id="${id}"></canvas>`;
+  S.charts[id]=new Chart(document.getElementById(id),cfg);
+}
+function destroyC(id){if(S.charts[id]){S.charts[id].destroy();S.charts[id]=null;}}
+
+// ─── HBAR LIST ────────────────────────────────────────────────────────────────
+function hbarList(id,data){
+  const el=document.getElementById(id);if(!el)return;
+  if(!data||!data.length){el.innerHTML='<div class="no-data">No data</div>';return;}
+  const mx=data[0][1]||1;
+  el.innerHTML=data.map(([l,v],i)=>`
+    <div class="hbar-item">
+      <div class="hbar-rank">${i+1}</div>
+      <div class="hbar-lbl" title="${l}">${l}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(2,(v/mx)*100).toFixed(1)}%;background:${CC[i%CC.length]}"></div></div>
+      <div class="hbar-val">${fmt(v)}</div>
+    </div>`).join('');
+}
+// ─── EXPORT ENGINE v2 — Styled Excel + High-Fidelity PDF ────────────────────
+
+// ─── Dashboard brand colors (mirrors CSS tokens) ─────────────────────────────
+const BRAND = {
+  dark: {
+    bg:      [3,7,16],      bg2:    [6,13,26],    bg3:    [10,19,38],
+    card:    [10,19,38],    border: [30,60,90],
+    text:    [226,238,255], text2:  [126,168,201], text3:  [68,94,122],
+    accent:  [0,245,160],   gold:   [245,197,24],  red:    [255,61,110],
+    blue:    [56,189,248],  purple: [168,85,247],  orange: [251,146,60],
+  },
+  light: {
+    bg:      [244,247,254], bg2:    [255,255,255], bg3:    [244,247,254],
+    card:    [255,255,255], border: [220,230,250],
+    text:    [27,37,89],    text2:  [74,85,104],   text3:  [160,174,192],
+    accent:  [67,24,255],   gold:   [245,197,24],  red:    [229,62,62],
+    blue:    [134,140,255], purple: [168,85,247],  orange: [251,146,60],
+  }
+};
+function B(key){ const t=document.body.dataset.theme==='light'?'light':'dark'; return BRAND[t][key]; }
+
+// ─── UI STATE ─────────────────────────────────────────────────────────────────
+let _exportMenuOpen=false, _cardExportTarget=null;
+
+// ─── Inject per-card export buttons ──────────────────────────────────────────
+function injectCardExportButtons(){
+  document.querySelectorAll('.card').forEach(card=>{
+    if(card.querySelector('.card-export-btn'))return;
+    const title=(card.querySelector('.ct')?.textContent||'Card').trim();
+    const btn=document.createElement('button');
+    btn.className='card-export-btn';btn.title='Export this card';
+    btn.dataset.cardTitle=title;
+    btn.innerHTML=`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v8M5 6l3 3 3-3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>`;
+    btn.onclick=(e)=>{e.stopPropagation();openCardExportMenu(e,card);};
+    card.appendChild(btn);
+  });
+}
+
+// ─── Override render to inject buttons ───────────────────────────────────────
+// NOTE: We do NOT override render() here — that caused infinite recursion via hoisting.
+// Instead, injectCardExportButtons is called from boot() and after each tab switch.
+
+// ─── Global export menu ───────────────────────────────────────────────────────
+function toggleExportMenu(e){
+  e.stopPropagation();
+  const menu=document.getElementById('global-export-menu');
+  const btn=document.getElementById('global-export-btn');
+  if(_exportMenuOpen){closeExportMenus();return;}
+  const activeTab=document.querySelector('.main-tab.active')?.textContent?.trim()||'Overview';
+  document.getElementById('export-current-tab-label').textContent=activeTab+' tab data';
+  const{d0,d1}=S.filters;
+  document.getElementById('export-menu-subtitle').textContent=(d0||d1)?`Filtered: ${d0||'start'} → ${d1||'end'}`:'All dates · current filters';
+  const r=btn.getBoundingClientRect();
+  menu.style.right=(window.innerWidth-r.right)+'px';
+  menu.style.top=(r.bottom+6)+'px';menu.style.left='auto';
+  menu.classList.add('open');_exportMenuOpen=true;
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#global-export-menu')&&!e.target.closest('#global-export-btn')&&
+     !e.target.closest('#card-export-menu')&&!e.target.closest('.card-export-btn'))closeExportMenus();
+});
+function closeExportMenus(){
+  document.getElementById('global-export-menu').classList.remove('open');
+  document.getElementById('card-export-menu').classList.remove('open');
+  _exportMenuOpen=false;_cardExportTarget=null;
+}
+
+function openTabExportMenu(e){
+  const menu=document.getElementById('global-export-menu');
+  const btn=e.currentTarget;
+  const activeTab=document.querySelector('.main-tab.active')?.textContent?.trim()||'Overview';
+  document.getElementById('export-current-tab-label').textContent=activeTab+' tab data';
+  const{d0,d1}=S.filters;
+  document.getElementById('export-menu-subtitle').textContent=(d0||d1)?`Filtered: ${d0||'start'} → ${d1||'end'}`:'All dates · current filters';
+  if(_exportMenuOpen){closeExportMenus();return;}
+  const r=btn.getBoundingClientRect();
+  menu.style.left=Math.min(r.left,window.innerWidth-220)+'px';
+  menu.style.top=(r.bottom+6)+'px';menu.style.right='auto';
+  menu.classList.add('open');_exportMenuOpen=true;
+}
+
+// ─── Per-card menu ────────────────────────────────────────────────────────────
+function openCardExportMenu(e,card){
+  closeExportMenus();_cardExportTarget=card;
+  const menu=document.getElementById('card-export-menu');
+  const r=e.currentTarget.getBoundingClientRect();
+  menu.style.left=Math.min(r.right,window.innerWidth-180)+'px';
+  menu.style.top=(r.bottom+4)+'px';
+  menu.classList.add('open');
+}
+function cardExport(fmt){
+  // Save target BEFORE closeExportMenus() nulls it
+  const card=_cardExportTarget;
+  closeExportMenus();
+  if(!card){showToast('⚠','No card selected','',true);return;}
+  const title=card.dataset?.cardTitle||card.querySelector('.ct')?.textContent||'Card';
+  if(fmt==='xlsx')exportCardXLSX(card,title);
+  else exportCardPDF(card,title);
+}
+
+// ─── Toast & Progress ─────────────────────────────────────────────────────────
+function showToast(icon,msg,sub,isError=false){
+  const t=document.getElementById('export-toast');
+  document.getElementById('toast-icon').textContent=icon;
+  document.getElementById('toast-msg').textContent=msg;
+  document.getElementById('toast-sub').textContent=sub||'';
+  t.style.borderColor=isError?'rgba(255,61,110,.4)':'var(--border)';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3400);
+}
+function showProgress(on){
+  const p=document.getElementById('export-progress');
+  on?p.classList.add('active'):p.classList.remove('active');
+}
+
+// ─── DATA HELPERS ─────────────────────────────────────────────────────────────
+function getFilterInfo(){
+  const{d0,d1}=S.filters;const parts=[];
+  if(FS.ct.size)parts.push('Type: '+[...FS.ct].join(', '));
+  if(FS.app.size)parts.push('App: '+[...FS.app].join(', '));
+  if(FS.net.size)parts.push('Network: '+[...FS.net].join(', '));
+  if(FS.dev.size)parts.push('Device: '+[...FS.dev].join(', '));
+  if(d0||d1)parts.push('Date: '+(d0||'start')+' → '+(d1||'end'));
+  return parts.length?parts.join(' | '):'No filters active';
+}
+function fmtN(n){if(n==null||n==='')return '';const v=Number(n);if(isNaN(v))return n;
+  if(v>=1e7)return(v/1e7).toFixed(2)+' Cr';if(v>=1e5)return(v/1e5).toFixed(1)+' L';
+  if(v>=1e3)return(v/1e3).toFixed(1)+'K';return v.toLocaleString('en-IN');}
+
+function getNetworkReachRows(){
+  const lin=S.f.filter(r=>r.content_type==='Linear TV');
+  const netImpr=gby(lin,'network',30,EX);
+  const netFreq=Object.fromEntries(gbyFreq(lin,'network',30,EX));
+  return{headers:['#','Network','Impressions','Unique Devices','Avg Frequency'],
+    rows:netImpr.map(([k,v],i)=>{const rows=lin.filter(r=>r.network===k);
+      return[i+1,k,v,sumU(rows),+(netFreq[k]||0).toFixed(2)];})};
+}
+function getAppReachRows(){
+  const st=S.f.filter(r=>r.content_type==='Streaming');
+  const apps=gby(st,'application',30,EXA);
+  const appFreq=Object.fromEntries(gbyFreq(st,'application',30,EXA));
+  return{headers:['#','App','Impressions','Unique Devices','Avg Frequency'],
+    rows:apps.map(([k,v],i)=>{const rows=st.filter(r=>r.application===k);
+      return[i+1,k,v,sumU(rows),+(appFreq[k]||0).toFixed(2)];})};
+}
+function getDailyRows(){
+  const d=S.f;
+  const stD=gbyDate(d,'Streaming'),ltD=gbyDate(d,'Linear TV');
+  const allDates=[...new Set([...stD.map(x=>x[0]),...ltD.map(x=>x[0])])].sort();
+  const stM=Object.fromEntries(stD),ltM=Object.fromEntries(ltD);
+  return{headers:['Date','Streaming','Linear TV','Total'],
+    rows:allDates.map(dt=>[dt,stM[dt]||0,ltM[dt]||0,(stM[dt]||0)+(ltM[dt]||0)])};
+}
+function getOverlapRows(){
+  const d=S.f,st=d.filter(r=>r.content_type==='Streaming'),lt=d.filter(r=>r.content_type==='Linear TV');
+  const stI=sumI(st),ltI=sumI(lt),stU=sumU(st),ltU=sumU(lt),totU=sumU(d),oa=S.raw?.overlap_analysis;
+  const rows=[['Metric','Streaming','Linear TV','Combined'],
+    ['Impressions',stI,ltI,stI+ltI],['Unique Devices',stU,ltU,totU],
+    ['Avg Frequency',(stU?(stI/stU).toFixed(2):'-'),(ltU?(ltI/ltU).toFixed(2):'-'),(totU?((stI+ltI)/totU).toFixed(2):'-')]];
+  if(oa){rows.push(['Streaming Only (true)',oa.streaming_only_devices,'',''],
+    ['Linear Only (true)','',oa.linear_only_devices,''],
+    ['Both Types (overlap)',oa.both_devices,oa.both_devices,''],
+    ['Unduplicated Total','','',oa.unduplicated_total]);}
+  else{rows.push(['Est. Overlap (heuristic)',Math.max(0,stU+ltU-totU),Math.max(0,stU+ltU-totU),'']);}
+  return{headers:rows[0],rows:rows.slice(1)};
+}
+function getFreqRows(){
+  const fd=S.raw?.freq_distribution||{};
+  const buckets=[['1×','1'],['2–3×','2-3'],['4–6×','4-6'],['7–10×','7-10'],['11+×','11+']];
+  return{headers:['Frequency Bucket','Devices'],rows:buckets.map(([l,k])=>[l,fd[k]||0])};
+}
+function getGeoRows(){
+  const d=S.f;
+  const states=gby(d,'subdivision',20,EX),cities=gby(d,'city',20,EX);
+  return{
+    states:{headers:['#','State','Impressions'],rows:states.map(([k,v],i)=>[i+1,k,v])},
+    cities:{headers:['#','City','Impressions'],rows:cities.map(([k,v],i)=>[i+1,k,v])}
+  };
+}
+function getHourRows(){
+  const h=S.raw?.hour_of_day||[];
+  return{headers:['Hour (IST)','Impressions'],rows:h.map(r=>[r.hour,r.impressions])};
+}
+function getSummaryData(){
+  const d=S.f,s=S.raw?.summary||{};
+  const impr=sumI(d),ud=sumU(d),secs=sumS(d);
+  const stI=sumI(d.filter(r=>r.content_type==='Streaming'));
+  const ltI=sumI(d.filter(r=>r.content_type==='Linear TV'));
+  const stU=sumU(d.filter(r=>r.content_type==='Streaming'));
+  const ltU=sumU(d.filter(r=>r.content_type==='Linear TV'));
+  return{impr,ud,secs,stI,ltI,stU,ltU,
+    freq:ud?(impr/ud).toFixed(2):'—',
+    dateStart:s.date_range?.start||'—',dateEnd:s.date_range?.end||'—',
+    generatedAt:s.generated_at||new Date().toLocaleString('en-IN')};
+}
+
+// ─── STYLED EXCEL EXPORT ─────────────────────────────────────────────────────
+// Brand color palettes as ARGB hex strings for SheetJS
+const XL_COLORS = {
+  darkBg:    'FF030710', darkBg2:   'FF060D1A', darkCard:  'FF0A1325',
+  accent:    'FF00F5A0', gold:      'FFF5C518', red:       'FFFF3D6E',
+  blue:      'FF38BDF8', purple:    'FFA855F7', orange:    'FFFB923C',
+  text:      'FFE2EEFF', text2:     'FF7EA8C9', text3:     'FF445E7A',
+  white:     'FFFFFFFF', lightBg:   'FFF4F7FE',
+  kpi1:      'FF00F5A0', kpi2:      'FFF5C518', kpi3:      'FF8338EC',
+  kpi4:      'FF38BDF8', kpi5:      'FFFF3D6E',
+};
+function xlsxCell(v,bold=false,bg=null,fg=null,size=10,halign='left'){
+  const cell={v,t:typeof v==='number'?'n':'s'};
+  const style={font:{bold,sz:size,color:{rgb:fg||XL_COLORS.text},name:'Calibri'},
+    alignment:{horizontal:halign,vertical:'center',wrapText:false},
+    fill:bg?{patternType:'solid',fgColor:{rgb:bg}}:{patternType:'solid',fgColor:{rgb:XL_COLORS.darkBg2}}};
+  cell.s=style;return cell;
+}
+function xlsxHeaderRow(cells){
+  return cells.map(c=>xlsxCell(c,true,XL_COLORS.darkCard,XL_COLORS.accent,10,'center'));
+}
+function xlsxDataRow(cells,rowIdx,accent=null){
+  const bg=rowIdx%2===0?XL_COLORS.darkBg:XL_COLORS.darkBg2;
+  return cells.map((c,i)=>{
+    const isNum=typeof c==='number';
+    const color=i===0?XL_COLORS.text2:(isNum?(accent||XL_COLORS.text):XL_COLORS.text2);
+    return xlsxCell(c,false,bg,color,10,isNum&&i>0?'right':'left');
+  });
+}
+function xlsxKpiRow(label,value,sub,colorHex){
+  return[
+    xlsxCell(label,true,XL_COLORS.darkCard,colorHex,10),
+    xlsxCell(typeof value==='number'?value:String(value),true,XL_COLORS.darkCard,XL_COLORS.text,14,'right'),
+    xlsxCell(sub||'',false,XL_COLORS.darkCard,XL_COLORS.text3,9),
+  ];
+}
+function xlsxTitleRow(text){
+  return[xlsxCell(text,true,XL_COLORS.darkBg,XL_COLORS.accent,12)];
+}
+function xlsxSpacer(){return[xlsxCell('',false,XL_COLORS.darkBg)];}
+
+function makeStyledSheet(wb, sheetName, sections){
+  // sections = [{title, headers, rows, accentColor}]
+  const wsData=[];
+  sections.forEach(sec=>{
+    wsData.push(xlsxTitleRow(sec.title));
+    wsData.push(xlsxSpacer());
+    if(sec.kpis){
+      sec.kpis.forEach(([l,v,s,c])=>wsData.push(xlsxKpiRow(l,v,s,c)));
+      wsData.push(xlsxSpacer());
+    }
+    if(sec.headers){
+      wsData.push(xlsxHeaderRow(sec.headers));
+      sec.rows.forEach((row,i)=>wsData.push(xlsxDataRow(row,i,sec.accentColor)));
+    }
+    wsData.push(xlsxSpacer());wsData.push(xlsxSpacer());
+  });
+  const ws=XLSX.utils.aoa_to_sheet(wsData.map(row=>row.map(c=>c.v)));
+  // Apply cell styles
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+  wsData.forEach((row,ri)=>{
+    row.forEach((cell,ci)=>{
+      const addr=XLSX.utils.encode_cell({r:ri,c:ci});
+      if(ws[addr]&&cell.s)ws[addr].s=cell.s;
+    });
+  });
+  // Col widths
+  const maxCols=Math.max(...wsData.map(r=>r.length),1);
+  ws['!cols']=Array.from({length:maxCols},(_,ci)=>({
+    wch:Math.max(14,Math.min(45,...wsData.map(r=>String(r[ci]?.v??'').length+2)))
+  }));
+  // Freeze header area
+  ws['!freeze']={xSplit:0,ySplit:1};
+  XLSX.utils.book_append_sheet(wb,ws,sheetName.slice(0,31));
+}
+
+function buildXLSXWorkbook(scope='all'){
+  const wb=XLSX.utils.book_new();
+  const sum=getSummaryData();
+  const fi=getFilterInfo();
+  const kpiColors=[XL_COLORS.kpi1,XL_COLORS.kpi2,XL_COLORS.kpi3,XL_COLORS.kpi4,XL_COLORS.kpi5];
+
+  // ── Summary sheet ─────────────────────────────────────────────────────────
+  if(scope==='all'||scope==='Overview'){
+    makeStyledSheet(wb,'Summary',[{
+      title:'📊 TV Intelligence Dashboard — Summary',
+      kpis:[
+        ['Total Impressions',sum.impr,'all content',XL_COLORS.kpi1],
+        ['Streaming Impressions',sum.stI,'streaming only',XL_COLORS.kpi1],
+        ['Linear TV Impressions',sum.ltI,'linear only',XL_COLORS.kpi2],
+        ['Unique Devices',sum.ud,'approx',XL_COLORS.kpi3],
+        ['Avg Frequency',sum.freq,'impr/device',XL_COLORS.kpi4],
+        ['Total Watch Time (hrs)',Math.round(sum.secs/3600),'hours',XL_COLORS.kpi5],
+        ['Date Range',sum.dateStart+' → '+sum.dateEnd,'','FF7EA8C9'],
+        ['Generated At',sum.generatedAt,'','FF7EA8C9'],
+        ['Active Filters',fi,'','FF7EA8C9'],
+      ],
+      headers:null,rows:null
+    }]);
+  }
+
+  // ── Reach / Daily sheet ───────────────────────────────────────────────────
+  if(scope==='all'||scope==='Reach Analysis'){
+    const daily=getDailyRows();
+    makeStyledSheet(wb,'Daily Reach',[{
+      title:'📅 Daily Impressions — Streaming vs Linear TV',
+      headers:daily.headers,rows:daily.rows,accentColor:XL_COLORS.accent
+    }]);
+  }
+
+  // ── Linear Networks sheet ─────────────────────────────────────────────────
+  if(scope==='all'||scope==='Linear TV'){
+    const nets=getNetworkReachRows();
+    const geo=getGeoRows();
+    makeStyledSheet(wb,'Linear TV',[
+      {title:'📺 Top Networks — Impressions & Reach',headers:nets.headers,rows:nets.rows,accentColor:XL_COLORS.blue},
+      {title:'🗺 Top States — Linear TV',headers:geo.states.headers,rows:geo.states.rows.slice(0,15),accentColor:XL_COLORS.blue},
+    ]);
+  }
+
+  // ── Streaming Apps sheet ──────────────────────────────────────────────────
+  if(scope==='all'||scope==='Streaming'){
+    const apps=getAppReachRows();
+    const geo=getGeoRows();
+    makeStyledSheet(wb,'Streaming',[
+      {title:'📱 Top Apps — Impressions & Reach',headers:apps.headers,rows:apps.rows,accentColor:XL_COLORS.accent},
+      {title:'🗺 Top Cities — Streaming',headers:geo.cities.headers,rows:geo.cities.rows.slice(0,15),accentColor:XL_COLORS.accent},
+    ]);
+  }
+
+  // ── Overlap sheet ─────────────────────────────────────────────────────────
+  if(scope==='all'||scope==='Overlap & Dedup'){
+    const ov=getOverlapRows();
+    makeStyledSheet(wb,'Overlap & Dedup',[{
+      title:'🔁 Overlap & Deduplication Analysis',
+      headers:ov.headers,rows:ov.rows,accentColor:XL_COLORS.red
+    }]);
+  }
+
+  // ── Audience sheet ────────────────────────────────────────────────────────
+  if(scope==='all'||scope==='Audience'){
+    const freq=getFreqRows();
+    const geo=getGeoRows();
+    const hr=getHourRows();
+    makeStyledSheet(wb,'Audience',[
+      {title:'🎯 Frequency Distribution',headers:freq.headers,rows:freq.rows,accentColor:XL_COLORS.purple},
+      {title:'🗺 Top States',headers:geo.states.headers,rows:geo.states.rows,accentColor:XL_COLORS.purple},
+      {title:'🕐 Hour of Day (IST)',headers:hr.headers,rows:hr.rows,accentColor:XL_COLORS.gold},
+    ]);
+  }
+  return wb;
+}
+
+function exportAll(format){
+  closeExportMenus();
+  if(!S.raw){showToast('⚠','No data loaded','Please load a dashboard_data.json first',true);return;}
+  if(format==='xlsx') exportAllXLSX();
+  else exportAllPDF(); // async — returns promise, toast handles completion
+}
+function exportCurrentTab(format){
+  closeExportMenus();
+  if(!S.raw){showToast('⚠','No data loaded','',true);return;}
+  if(format==='xlsx') exportTabXLSX();
+  else exportTabPDF();
+}
+
+function exportAllXLSX(){
+  showProgress(true);showToast('⏳','Building Excel...','6 styled sheets');
+  setTimeout(()=>{
+    try{
+      const wb=buildXLSXWorkbook('all');
+      const fn=`TV_Intelligence_${new Date().toISOString().slice(0,10)}.xlsx`;
+      XLSX.writeFile(wb,fn);showProgress(false);showToast('✓','Excel exported','6 sheets · '+fn);
+    }catch(e){showProgress(false);showToast('⚠','Failed',e.message,true);console.error(e);}
+  },80);
+}
+function exportTabXLSX(){
+  const tab=document.querySelector('.main-tab.active')?.textContent?.trim()||'Overview';
+  showProgress(true);showToast('⏳','Building Excel...',tab);
+  setTimeout(()=>{
+    try{
+      const wb=buildXLSXWorkbook(tab);
+      const fn=`TV_${tab.replace(/[^a-z0-9]/gi,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+      XLSX.writeFile(wb,fn);showProgress(false);showToast('✓','Excel exported',tab+' · '+fn);
+    }catch(e){showProgress(false);showToast('⚠','Failed',e.message,true);}
+  },80);
+}
+function exportCardXLSX(card,title){
+  if(!S.raw){showToast('⚠','No data','',true);return;}
+  showProgress(true);
+  setTimeout(()=>{
+    try{
+      const wb=XLSX.utils.book_new();
+      let sections=[];
+      const canvas=card.querySelector('canvas');
+      const hbarEl=card.querySelector('.hbar-list');
+      const pctEl=card.querySelector('.pct-table');
+      if(canvas&&S.charts[canvas.id]){
+        const chart=S.charts[canvas.id];
+        const labels=chart.data.labels||[];
+        const datasets=chart.data.datasets||[];
+        const headers=['Label',...datasets.map(ds=>ds.label||'Value')];
+        const rows=labels.map((lbl,i)=>[lbl,...datasets.map(ds=>{
+          const v=ds.data[i];return typeof v==='object'&&v!==null?(v.x??v.y??0):v;
+        })]);
+        sections=[{title:'📊 '+title,headers,rows,accentColor:XL_COLORS.accent}];
+      } else if(hbarEl){
+        const rows=[];
+        hbarEl.querySelectorAll('.hbar-item').forEach((item,i)=>{
+          const lbl=item.querySelector('.hbar-lbl')?.textContent||'';
+          const val=item.querySelector('.hbar-val')?.textContent||'';
+          const num=parseFloat(val.replace(/[^0-9.]/g,''));
+          rows.push([i+1,lbl,isNaN(num)?val:num]);
+        });
+        sections=[{title:'📊 '+title,headers:['#','Label','Value'],rows,accentColor:XL_COLORS.accent}];
+      } else if(pctEl){
+        const tRows=[];
+        pctEl.querySelectorAll('tr').forEach(tr=>{
+          tRows.push(Array.from(tr.querySelectorAll('th,td')).map(c=>c.textContent.trim()));
+        });
+        if(tRows.length>1)sections=[{title:'📊 '+title,headers:tRows[0],rows:tRows.slice(1),accentColor:XL_COLORS.gold}];
+      }
+      if(sections.length){
+        makeStyledSheet(wb,'Data',sections);
+      } else {
+        makeStyledSheet(wb,'Data',[{title:'📊 '+title,kpis:[['No chart data available','','','FF7EA8C9']],headers:null,rows:null}]);
+      }
+      const fn=`TV_Card_${title.replace(/[^a-z0-9]/gi,'_').slice(0,20)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+      XLSX.writeFile(wb,fn);showProgress(false);showToast('✓','Card exported',title);
+    }catch(e){showProgress(false);showToast('⚠','Failed',e.message,true);}
+  },60);
+}
+
+// ─── HIGH-FIDELITY PDF EXPORT ─────────────────────────────────────────────────
+// Uses jsPDF with full branded dark-navy design matching the dashboard
+const PW=297,PH=210,M=14,COL=297-28; // A4 landscape
+
+function newDoc(){const{jsPDF}=window.jspdf;return new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});}
+
+function c(arr){return arr;} // passthrough for rgb arrays
+
+function pdfFill(doc,x,y,w,h,rgb){doc.setFillColor(...rgb);doc.rect(x,y,w,h,'F');}
+function pdfText(doc,text,x,y,rgb,size=9,bold=false,align='left'){
+  doc.setTextColor(...rgb);doc.setFontSize(size);
+  doc.setFont('helvetica',bold?'bold':'normal');
+  doc.text(String(text),x,y,{align});
+}
+function pdfLine(doc,x1,y1,x2,y2,rgb,w=0.2){
+  doc.setDrawColor(...rgb);doc.setLineWidth(w);doc.line(x1,y1,x2,y2);
+}
+
+function pdfPageBg(doc){
+  // Deep navy background
+  pdfFill(doc,0,0,PW,PH,[3,7,16]);
+  // Subtle radial-ish gradient strips
+  pdfFill(doc,0,0,PW*0.5,PH*0.4,[6,13,26]);
+}
+function pdfPageHeader(doc,title,pageNum,totalPages=6){
+  // Header bar
+  pdfFill(doc,0,0,PW,16,[6,13,26]);
+  // Accent top strip: green fade
+  pdfFill(doc,0,0,PW*0.6,2,[0,245,160]);
+  pdfFill(doc,PW*0.6,0,PW*0.4,2,[56,189,248]);
+  // Badge
+  pdfFill(doc,M,4,18,7,[0,245,160]);
+  pdfText(doc,'TV',M+2.5,8.8,[3,7,16],6.5,true);
+  // Title
+  pdfText(doc,title,M+21,9,[226,238,255],10,true);
+  // Right: page + date
+  pdfText(doc,new Date().toLocaleDateString('en-IN'),PW-M,9,[68,94,122],7,'normal','right');
+  pdfText(doc,`${pageNum}/${totalPages}`,PW-M-22,9,[68,94,122],7,'normal','right');
+}
+function pdfPageFooter(doc,filterInfo){
+  pdfFill(doc,0,PH-8,PW,8,[6,13,26]);
+  pdfLine(doc,0,PH-8,PW,PH-8,[30,60,90]);
+  pdfText(doc,'Filters: '+filterInfo.slice(0,120),M,PH-3,[68,94,122],6.5);
+  pdfText(doc,'MIQ TV Intelligence Dashboard',PW-M,PH-3,[0,245,160],6.5,'normal','right');
+}
+
+function pdfSectionHeader(doc,y,text){
+  pdfFill(doc,M,y,COL,7,[10,19,38]);
+  pdfFill(doc,M,y,3,7,[0,245,160]);
+  pdfText(doc,text.toUpperCase(),M+6,y+4.8,[0,245,160],7,true);
+  return y+10;
+}
+
+function pdfKPI(doc,x,y,w,label,value,sub,accentRgb){
+  pdfFill(doc,x,y,w,19,[10,19,38]);
+  pdfFill(doc,x,y,w,1.5,accentRgb); // top accent strip
+  pdfLine(doc,x,y,x+w,y+19,[...accentRgb.map(v=>Math.min(255,v+30))],0.15);
+  pdfText(doc,label.toUpperCase(),x+3,y+5.5,[68,94,122],6,true);
+  pdfText(doc,String(value),x+3,y+13,[226,238,255],12,true);
+  pdfText(doc,String(sub||''),x+3,y+17.5,[126,168,201],6.5);
+}
+
+function pdfTable(doc,x,y,headers,rows,opts={}){
+  const{maxH=PH-20,accent=[0,245,160],colWidths}=opts;
+  const nc=headers.length;
+  const cw=colWidths||(Array(nc).fill((COL-(x-M))/nc));
+  const tw=cw.reduce((s,v)=>s+v,0);
+  // Header row
+  pdfFill(doc,x,y,tw,5.5,[10,19,38]);
+  pdfLine(doc,x,y+5.5,x+tw,y+5.5,accent,0.3);
+  headers.forEach((h,i)=>{
+    const cx=x+cw.slice(0,i).reduce((s,v)=>s+v,0);
+    pdfText(doc,String(h).slice(0,28),cx+2,y+4,[0,245,160],6.5,true);
+  });
+  let cy=y+5.5;
+  rows.every((row,ri)=>{
+    if(cy+4.5>maxH)return false;
+    pdfFill(doc,x,cy,tw,4.5,ri%2===0?[6,13,26]:[9,18,38]);
+    row.forEach((cell,ci)=>{
+      const cx=x+cw.slice(0,ci).reduce((s,v)=>s+v,0);
+      const isNum=typeof cell==='number';
+      const color=ci===0?[126,168,201]:(isNum?[226,238,255]:[162,174,192]);
+      const txt=isNum?cell.toLocaleString('en-IN'):String(cell??'').slice(0,26);
+      pdfText(doc,txt,isNum?cx+cw[ci]-2:cx+2,cy+3.2,color,6.5,'normal',isNum?'right':'left');
+    });
+    cy+=4.5;return true;
+  });
+  pdfLine(doc,x,y,x,cy,[30,60,90],0.15);
+  pdfLine(doc,x+tw,y,x+tw,cy,[30,60,90],0.15);
+  return cy+4;
+}
+
+function pdfChartImg(doc,canvasId,x,y,w,h){
+  try{
+    const ch=S.charts[canvasId];if(!ch)return false;
+    const cv=document.getElementById(canvasId);if(!cv)return false;
+    // Capture at 2x for sharpness
+    doc.addImage(cv.toDataURL('image/png',1.0),'PNG',x,y,w,h,undefined,'FAST');
+    return true;
+  }catch(e){return false;}
+}
+
+
+// ─── PRINT-BASED PDF EXPORT ──────────────────────────────────────────────────
+// Uses window.print() for crisp vector text, full-res charts, exact colours.
+// The @media print CSS handles layout, page breaks, and showing all sub-panels.
+
+// Set data-print-title on each tab content for the CSS ::before header
+function setPrintTitles(){
+  const titles={
+    overview:'TV Overview',reach:'Reach Analysis',
+    linear:'Linear TV',streaming:'Streaming',
+    overlap:'Overlap & Dedup',audience:'Audience'
+  };
+  Object.entries(titles).forEach(([id,t])=>{
+    const el=document.getElementById('tab-'+id);
+    if(el)el.setAttribute('data-print-title',t);
+  });
+}
+
+// Render ALL tabs so charts exist before print
+async function renderAllTabsForPrint(){
+  const tabIds=['overview','reach','linear','streaming','overlap','audience'];
+  const orig=document.querySelector('.main-tab.active');
+  const origPanel=document.querySelector('.tab-content.active');
+  for(const id of tabIds){
+    const btn=document.querySelector(`.main-tab[onclick*="${id}"]`);
+    if(!btn)continue;
+    document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+id)?.classList.add('active');
+    render();
+    // Wait longer to ensure Chart.js finishes animating and rendering
+    await new Promise(r=>setTimeout(r,900));
+  }
+  // Restore original tab
+  if(orig&&origPanel){
+    document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(p=>p.classList.remove('active'));
+    orig.classList.add('active');origPanel.classList.add('active');render();
+    await new Promise(r=>setTimeout(r,600));
+  }
+}
+
+async function exportAllPDF(){
+  if(!S.raw){showToast('⚠','No data loaded','',true);return;}
+  showProgress(true);showToast('⏳','Preparing PDF...','Rendering all tabs — please wait');
+  setPrintTitles();
+  await renderAllTabsForPrint();
+  showProgress(false);closeExportMenus();
+  showToast('✓','Opening print dialog','Use "Save as PDF" in your browser print dialog');
+  await new Promise(r=>setTimeout(r,400));
+  window.print();
+}
+
+async function exportTabPDF(){
+  if(!S.raw){showToast('⚠','No data loaded','',true);return;}
+  // For single-tab, render all then print (CSS handles which tabs show)
+  await exportAllPDF();
+}
+
+async function exportCardPDF(card,title){
+  if(!S.raw){showToast('⚠','No data','',true);return;}
+  // For single card: use html2canvas as a lightweight single-element capture
+  showProgress(true);showToast('⏳','Capturing card...',title);
+  try{
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const fi=getFilterInfo();
+    const isDarkCard=document.body.dataset.theme!=='light';
+    // Resolve the true background colour — semi-transparent bg2 over bg
+    const bgColor=isDarkCard?'#060d1a':'#ffffff';
+
+    // Temporarily apply a solid background so html2canvas composites correctly
+    const prevBg=card.style.background;
+    const prevBdRad=card.style.borderRadius;
+    card.style.background=bgColor;
+
+    const capturedCanvas=await html2canvas(card,{
+      backgroundColor:bgColor,
+      scale:2,
+      useCORS:true,
+      allowTaint:true,
+      logging:false,
+      // Disable backdrop-filter workaround: clone element without blur
+      onclone:(doc,el)=>{
+        // Flatten backdrop-filter on all descendants (html2canvas ignores it anyway)
+        el.querySelectorAll('*').forEach(ch=>{
+          const cs=window.getComputedStyle(ch);
+          // If any element has backdrop-filter, give it a solid bg to avoid transparent look
+          if(cs.backdropFilter&&cs.backdropFilter!=='none'){
+            ch.style.backdropFilter='none';
+            ch.style.webkitBackdropFilter='none';
+          }
+        });
+      },
+      ignoreElements:e=>e.classList&&(e.classList.contains('export-menu')||e.classList.contains('card-export-menu')||e.classList.contains('card-export-btn'))
+    });
+
+    // Restore card style
+    card.style.background=prevBg;
+
+    pdfPageBg(doc);
+    pdfPageHeader(doc,title.slice(0,60),1,1);
+    const imgData=capturedCanvas.toDataURL('image/png',1.0);
+    const PW=doc.internal.pageSize.getWidth(),PH=doc.internal.pageSize.getHeight();
+    const M=10,headerH=18,footerH=10;
+    const maxW=PW-M*2,maxH=PH-headerH-footerH-4;
+    const aspect=capturedCanvas.height/capturedCanvas.width;
+    const w=Math.min(maxW,maxH/aspect);
+    const h=w*aspect;
+    const xOff=(PW-w)/2;
+    doc.addImage(imgData,'PNG',xOff,headerH+2,w,h,'','NONE');
+    pdfPageFooter(doc,fi);
+    const fn=`TV_Card_${title.replace(/[^a-z0-9]/gi,'_').slice(0,22)}_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fn);
+    showProgress(false);showToast('✓','Card PDF exported',title);
+  }catch(e){
+    showProgress(false);showToast('⚠','PDF failed',e.message,true);console.error(e);
+  }
+}
+
+// ─── AUTO-LOAD DASHBOARD DATA ─────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  setTimeout(async()=>{
+    try{
+      const response=await fetch('dashboard_data.json');
+      if(response.ok){
+        const data=await response.json();
+        if(data.summary){boot(data);}
+      }
+    }catch(e){
+      console.log('Auto-load skipped: dashboard_data.json not found or error',e);
+    }
+  },200);
+});
+
+</script></body>
+</html>
