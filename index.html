@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <style>
 /* ── THEME TOKENS ── */
 :root {
@@ -3488,13 +3489,15 @@ async function exportCardPDF(card,title){
 window.addEventListener('load',()=>{
   setTimeout(async()=>{
     try{
-      const response=await fetch('dashboard_data.json');
+      const response=await fetch('dashboard_data.json.gz');
       if(response.ok){
-        const data=await response.json();
+        const arrayBuffer=await response.arrayBuffer();
+        const decompressed=pako.inflate(new Uint8Array(arrayBuffer),{to:'string'});
+        const data=JSON.parse(decompressed);
         if(data.summary){boot(data);}
       }
     }catch(e){
-      console.log('Auto-load skipped: dashboard_data.json not found or error',e);
+      console.log('Auto-load skipped: dashboard_data.json.gz not found or error',e);
     }
   },200);
 });
